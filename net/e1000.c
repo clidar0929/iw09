@@ -9,6 +9,8 @@
 #include "../ext/defs.h"
 #include "../ext/pci.h"
 
+#include "defs.h"
+#include "net.h"
 #include "e1000_dev.h"
 
 #define RX_RING_SIZE 16
@@ -20,6 +22,7 @@ struct e1000 {
     struct tx_desc tx_ring[TX_RING_SIZE] __attribute__((aligned(16)));;
     uint8_t addr[6];
     uint8_t irq;
+    struct netdev *netdev;
     struct e1000 *next;
 };
 
@@ -128,10 +131,56 @@ e1000_tx_init(struct e1000 *dev)
     );
 }
 
+static int
+e1000_open(struct netdev *dev)
+{
+    // TODO
+    return 0;
+}
+
+static int
+e1000_stop(struct netdev *dev)
+{
+    // TODO
+    return 0;
+}
+
+static ssize_t
+e1000_tx(struct netdev *dev, uint16_t type, const uint8_t *packet, size_t len, const void *dst)
+{
+    // TODO
+    return 0;
+}
+
 static void
 e1000_rx(struct e1000 *dev)
 {
-    cprintf("e1000: 0x%08x\n");
+    while (1) {
+        uint32_t tail = (e1000_reg_read(dev, E1000_RDT)+1) % RX_RING_SIZE;
+        struct rx_desc *desc = &dev->rx_ring[tail];
+        if (!(desc->status & E1000_RXD_STAT_DD)) {
+            /* EMPTY */
+            break;
+        }
+        do {
+            if (desc->length < 60) {
+                cprintf("[e1000] short packet (%d bytes)\n", desc->length);
+                break;
+            }
+            if (!(desc->status & E1000_RXD_STAT_EOP)) {
+                cprintf("[e1000] not EOP! this driver does not support packet that do not fit in one buffer\n");
+                break;
+            }
+            if (desc->errors) {
+                cprintf("[e1000] rx errors (0x%x)\n", desc->errors);
+                break;
+            }
+            cprintf("[e1000] e1000_rx: dev=%s, length=%u\n", dev->netdev->name, desc->length);
+            hexdump(P2V((uint32_t)desc->addr), desc->length);
+        } while (0);
+        desc->status = (uint16_t)(0);
+        e1000_reg_write(dev, E1000_RDT, tail);
+    }
 }
 
 void
@@ -139,7 +188,6 @@ e1000intr(void)
 {
     struct e1000 *dev;
     int icr;
-    cprintf("\n[e1000_intr]\n");
     for (dev = devices; dev; dev = dev->next) {
         icr = e1000_reg_read(dev, E1000_ICR);
         if (icr & E1000_ICR_RXT0) {
@@ -150,19 +198,30 @@ e1000intr(void)
     }
 }
 
+void
+e1000_setup(struct netdev *dev)
+{
+    // TODO
+}
+
+struct netdev_ops e1000_ops = {
+    .open = e1000_open,
+    .stop = e1000_stop,
+    .xmit = e1000_tx,
+};
+
 int
 e1000_init(struct pci_func *pcif)
 {
-    cprintf("e1000_init\n");
     pci_func_enable(pcif);
     struct e1000 *dev = (struct e1000 *)kalloc();
     // Resolve MMIO base address
     dev->mmio_base = e1000_resolve_mmio_base(pcif);
     assert(dev->mmio_base);
-    cprintf("e1000: mmio_base=0x%08x\n", dev->mmio_base);
+    cprintf("[e1000] mmio_base=0x%08x\n", dev->mmio_base);
     // Read HW address from EEPROM
     e1000_read_addr_from_eeprom(dev, dev->addr);
-    cprintf("e1000: addr=%02x:%02x:%02x:%02x:%02x:%02x\n", dev->addr[0], dev->addr[1], dev->addr[2], dev->addr[3], dev->addr[4], dev->addr[5]);
+    cprintf("[e1000] addr=%02x:%02x:%02x:%02x:%02x:%02x\n", dev->addr[0], dev->addr[1], dev->addr[2], dev->addr[3], dev->addr[4], dev->addr[5]);
     // Register I/O APIC
     dev->irq = pcif->irq_line;
     ioapicenable(dev->irq, ncpu - 1);
@@ -180,6 +239,14 @@ e1000_init(struct pci_func *pcif)
     e1000_tx_init(dev);
     // Enable RX
     e1000_reg_write(dev, E1000_RCTL, e1000_reg_read(dev, E1000_RCTL) | E1000_RCTL_EN);
+    // Alloc netdev
+    struct netdev *netdev = netdev_alloc(e1000_setup);
+    memcpy(netdev->addr, dev->addr, 6);
+    netdev->priv = dev;
+    netdev->ops = &e1000_ops;
+    // Register netdev
+    netdev_register(netdev);
+    dev->netdev = netdev;
     // Link to e1000 device list
     dev->next = devices;
     devices = dev;
