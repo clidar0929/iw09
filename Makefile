@@ -90,6 +90,8 @@ ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]nopie'),)
 CFLAGS += -fno-pie -nopie
 endif
 
+GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
+
 xv6.img: bootblock kernel
 	dd if=/dev/zero of=xv6.img count=10000
 	dd if=bootblock of=xv6.img conv=notrunc
@@ -121,7 +123,7 @@ initcode: initcode.S
 	$(OBJDUMP) -S initcode.o > initcode.asm
 
 kernel: $(OBJS) entry.o entryother initcode kernel.ld
-	$(LD) $(LDFLAGS) -T kernel.ld -o kernel entry.o $(OBJS) -b binary initcode entryother
+	$(LD) $(LDFLAGS) -T kernel.ld -o kernel entry.o $(OBJS) $(GCC_LIB) -b binary initcode entryother
 	$(OBJDUMP) -S kernel > kernel.asm
 	$(OBJDUMP) -t kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > kernel.sym
 
