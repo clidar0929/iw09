@@ -33,7 +33,10 @@ EXT_OBJS = \
 	ext/printfmt.o\
 	ext/string.o\
 
-OBJS += $(EXT_OBJS)
+NET_OBJS = \
+	net/e1000.o\
+
+OBJS += $(EXT_OBJS) $(NET_OBJS)
 
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf
@@ -196,7 +199,7 @@ fs.img: mkfs README $(UPROGS)
 
 -include *.d
 
-clean: ext-clean
+clean: ext-clean net-clean
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*.o *.d *.asm *.sym vectors.S bootblock entryother \
 	initcode initcode.out kernel xv6.img fs.img kernelmemfs \
@@ -205,6 +208,9 @@ clean: ext-clean
 
 ext-clean:
 	rm -f ext/*.o ext/*.d
+
+net-clean:
+	rm -f net/*.o net/*.d
 
 # make a printout
 FILES = $(shell grep -v '^\#' runoff.list)

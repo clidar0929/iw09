@@ -1,12 +1,13 @@
 #include "../types.h"
 #include "../defs.h"
-#include "../x86.h"
 
 #include "types.h"
 #include "defs.h"
 #include "x86.h"
 #include "pci.h"
 #include "pcireg.h"
+
+#include "../net/defs.h"
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 1;
@@ -34,6 +35,7 @@ struct pci_driver pci_attach_class[] = {
 // pci_attach_vendor matches the vendor ID and device ID of a PCI device. key1
 // and key2 should be the vendor ID and device ID respectively
 struct pci_driver pci_attach_vendor[] = {
+	{ 0x8086, 0x100e, &e1000_init },
 	{ 0, 0, 0 },
 };
 
