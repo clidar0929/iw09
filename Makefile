@@ -29,6 +29,7 @@ OBJS = \
 	vm.o\
 
 EXT_OBJS = \
+	ext/pci.o\
 	ext/printfmt.o\
 	ext/string.o\
 

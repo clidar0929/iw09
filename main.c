@@ -6,6 +6,9 @@
 #include "proc.h"
 #include "x86.h"
 
+#include "ext/types.h"
+#include "ext/defs.h"
+
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
 extern pde_t *kpgdir;
@@ -31,6 +34,7 @@ main(void)
   binit();         // buffer cache
   fileinit();      // file table
   ideinit();       // disk 
+  pciinit();       // pci devices
   startothers();   // start other processors
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
   userinit();      // first user process
