@@ -28,6 +28,12 @@ OBJS = \
 	vectors.o\
 	vm.o\
 
+EXT_OBJS = \
+	ext/printfmt.o\
+	ext/string.o\
+
+OBJS += $(EXT_OBJS)
+
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf
 
@@ -189,12 +195,15 @@ fs.img: mkfs README $(UPROGS)
 
 -include *.d
 
-clean: 
+clean: ext-clean
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*.o *.d *.asm *.sym vectors.S bootblock entryother \
 	initcode initcode.out kernel xv6.img fs.img kernelmemfs \
 	xv6memfs.img mkfs .gdbinit \
 	$(UPROGS)
+
+ext-clean:
+	rm -f ext/*.o ext/*.d
 
 # make a printout
 FILES = $(shell grep -v '^\#' runoff.list)
