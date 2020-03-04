@@ -36,6 +36,7 @@ EXT_OBJS = \
 NET_OBJS = \
 	net/common.o\
 	net/e1000.o\
+	net/ethernet.o\
 	net/net.o\
 
 OBJS += $(EXT_OBJS) $(NET_OBJS)

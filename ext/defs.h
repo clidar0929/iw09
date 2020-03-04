@@ -10,6 +10,7 @@ int             snprintf(char *buf, int n, const char *fmt, ...);
 
 // string.c
 int             strnlen(const char *s, size_t size);
+long            strtol(const char *s, char **endptr, int base);
 
 // assert
 #define _str(x) #x

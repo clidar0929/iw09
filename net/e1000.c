@@ -146,10 +146,27 @@ e1000_stop(struct netdev *dev)
 }
 
 static ssize_t
+e1000_tx_cb(struct netdev *netdev, uint8_t *data, size_t len)
+{
+    struct e1000 *dev = (struct e1000 *)netdev->priv;
+    uint32_t tail = e1000_reg_read(dev, E1000_TDT);
+    struct tx_desc *desc = &dev->tx_ring[tail];
+
+    desc->addr = (uint64_t)V2P(data);
+    desc->length = len;
+    desc->status = 0;
+    desc->cmd = (E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS);
+    e1000_reg_write(dev, E1000_TDT, (tail + 1) % TX_RING_SIZE);
+    while(!(desc->status & 0x0f)) {
+        microdelay(1);
+    }
+    return len;
+}
+
+static ssize_t
 e1000_tx(struct netdev *dev, uint16_t type, const uint8_t *packet, size_t len, const void *dst)
 {
-    // TODO
-    return 0;
+    return ethernet_tx_helper(dev, type, packet, len, dst, e1000_tx_cb);
 }
 
 static void
@@ -175,8 +192,7 @@ e1000_rx(struct e1000 *dev)
                 cprintf("[e1000] rx errors (0x%x)\n", desc->errors);
                 break;
             }
-            cprintf("[e1000] e1000_rx: dev=%s, length=%u\n", dev->netdev->name, desc->length);
-            hexdump(P2V((uint32_t)desc->addr), desc->length);
+            ethernet_rx_helper(dev->netdev, P2V((uint32_t)desc->addr), desc->length, netdev_receive);
         } while (0);
         desc->status = (uint16_t)(0);
         e1000_reg_write(dev, E1000_RDT, tail);
@@ -201,7 +217,7 @@ e1000intr(void)
 void
 e1000_setup(struct netdev *dev)
 {
-    // TODO
+    ethernet_netdev_setup(dev);
 }
 
 struct netdev_ops e1000_ops = {
