@@ -34,9 +34,11 @@ EXT_OBJS = \
 	ext/string.o\
 
 NET_OBJS = \
+	net/arp.o\
 	net/common.o\
 	net/e1000.o\
 	net/ethernet.o\
+	net/ip.o\
 	net/net.o\
 
 OBJS += $(EXT_OBJS) $(NET_OBJS)

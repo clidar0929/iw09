@@ -7,6 +7,7 @@
 #include "pci.h"
 #include "pcireg.h"
 
+#include "../net/types.h"
 #include "../net/defs.h"
 
 // Flag to do "lspci" at bootup

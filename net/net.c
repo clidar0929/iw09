@@ -4,9 +4,19 @@
 #include "../ext/types.h"
 #include "../ext/defs.h"
 
+#include "types.h"
+#include "defs.h"
 #include "net.h"
+#include "ip.h"
+
+struct netproto {
+    struct netproto *next;
+    uint16_t type;
+    void (*handler)(uint8_t *packet, size_t plen, struct netdev *dev);
+};
 
 static struct netdev *devices;
+static struct netproto *protocols;
 
 struct netdev *
 netdev_root(void)
@@ -40,6 +50,83 @@ netdev_register(struct netdev *dev)
 }
 
 void
-netdev_receive(struct netdev *dev, uint16_t type, uint8_t *packet, unsigned int plen) {
+netdev_receive(struct netdev *dev, uint16_t type, uint8_t *packet, unsigned int plen)
+{
     cprintf("[net] netdev_receive: dev=%s, type=%04x, packet=%p, plen=%u\n", dev->name, type, packet, plen);
+    struct netproto *entry;
+
+    for (entry = protocols; entry; entry = entry->next) {
+        if (hton16(entry->type) == type) {
+            entry->handler(packet, plen, dev);
+            return;
+        }
+    }
+}
+
+int
+netdev_add_netif(struct netdev *dev, struct netif *netif)
+{
+    struct netif *entry;
+
+    for (entry = dev->ifs; entry; entry = entry->next) {
+        if (entry->family == netif->family) {
+            return -1;
+        }
+    }
+    netif->next = dev->ifs;
+    netif->dev  = dev;
+    dev->ifs = netif;
+    return 0;
+}
+
+struct netif *
+netdev_get_netif(struct netdev *dev, int family)
+{
+    struct netif *entry;
+
+    for (entry = dev->ifs; entry; entry = entry->next) {
+        if (entry->family == family) {
+            return entry;
+        }
+    }
+    return NULL;
+}
+
+int
+netproto_register(unsigned short type, void (*handler)(uint8_t *packet, size_t plen, struct netdev *dev))
+{
+    struct netproto *entry;
+
+    for (entry = protocols; entry; entry = entry->next) {
+        if (entry->type == type) {
+            return -1;
+        }
+    }
+    entry = (struct netproto *)kalloc();
+    if (!entry) {
+        return -1;
+    }
+    entry->next = protocols;
+    entry->type = type;
+    entry->handler = handler;
+    protocols = entry;
+    return 0;
+}
+
+void
+netinit(void)
+{
+    arp_init();
+
+    // dummy setting
+    struct netif_ip *iface;
+    iface = (struct netif_ip *)kalloc();
+    ((struct netif *)iface)->next = NULL;
+    ((struct netif *)iface)->family = NETIF_FAMILY_IPV4;
+    ((struct netif *)iface)->dev = devices;
+    ip_addr_pton("10.0.2.15", &iface->unicast);
+    ip_addr_pton("255.255.255.0", &iface->netmask);
+    iface->network = iface->unicast & iface->netmask;
+    iface->broadcast = iface->network | ~iface->netmask;
+    devices->ifs = (struct netif *)iface;
 }

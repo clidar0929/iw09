@@ -9,6 +9,7 @@
 #include "spinlock.h"
 
 #include "ext/types.h"
+#include "net/types.h"
 #include "net/defs.h"
 
 // Interrupt descriptor table (shared by all CPUs).
