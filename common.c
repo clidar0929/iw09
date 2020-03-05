@@ -1,3 +1,6 @@
+// Copyright (c) 2012-2020 YAMAMOTO Masaya
+// SPDX-License-Identifier: MIT
+
 #include "types.h"
 #include "defs.h"
 
