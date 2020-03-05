@@ -40,7 +40,7 @@ NET_OBJS = \
 	net/ethernet.o\
 	net/icmp.o\
 	net/ip.o\
-	net/net.o\
+	net/net.o
 
 OBJS += $(EXT_OBJS) $(NET_OBJS)
 

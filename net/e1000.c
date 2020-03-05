@@ -157,7 +157,9 @@ e1000_tx_cb(struct netdev *netdev, uint8_t *data, size_t len)
     desc->length = len;
     desc->status = 0;
     desc->cmd = (E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS);
+#ifdef DEBUG
     cprintf("[e1000] %s: %u bytes data transmit\n", dev->netdev->name, desc->length);
+#endif
     e1000_reg_write(dev, E1000_TDT, (tail + 1) % TX_RING_SIZE);
     while(!(desc->status & 0x0f)) {
         microdelay(1);
@@ -174,7 +176,9 @@ e1000_tx(struct netdev *dev, uint16_t type, const uint8_t *packet, size_t len, c
 static void
 e1000_rx(struct e1000 *dev)
 {
+#ifdef DEBUG
     cprintf("[e1000] %s: check rx descriptors...\n", dev->netdev->name);
+#endif
     while (1) {
         uint32_t tail = (e1000_reg_read(dev, E1000_RDT)+1) % RX_RING_SIZE;
         struct rx_desc *desc = &dev->rx_ring[tail];
@@ -195,7 +199,9 @@ e1000_rx(struct e1000 *dev)
                 cprintf("[e1000] rx errors (0x%x)\n", desc->errors);
                 break;
             }
+#ifdef DEBUG
             cprintf("[e1000] %s: %u bytes data received\n", dev->netdev->name, desc->length);
+#endif
             ethernet_rx_helper(dev->netdev, P2V((uint32_t)desc->addr), desc->length, netdev_receive);
         } while (0);
         desc->status = (uint16_t)(0);
@@ -208,7 +214,9 @@ e1000intr(void)
 {
     struct e1000 *dev;
     int icr;
+#ifdef DEBUG
     cprintf("[e1000] interrupt: etner\n");
+#endif
     for (dev = devices; dev; dev = dev->next) {
         icr = e1000_reg_read(dev, E1000_ICR);
         if (icr & E1000_ICR_RXT0) {
@@ -217,7 +225,9 @@ e1000intr(void)
             e1000_reg_read(dev, E1000_ICR);
         }
     }
+#ifdef DEBUG
     cprintf("[e1000] interrupt: leave\n");
+#endif
 }
 
 void

@@ -43,7 +43,7 @@ netdev_alloc(void (*setup)(struct netdev *))
 int
 netdev_register(struct netdev *dev)
 {
-    cprintf("[net] netdev_register: '%s'\n", dev->name);
+    cprintf("[net] netdev_register: <%s>\n", dev->name);
     dev->next = devices;
     devices = dev;
     return 0;
@@ -52,9 +52,10 @@ netdev_register(struct netdev *dev)
 void
 netdev_receive(struct netdev *dev, uint16_t type, uint8_t *packet, unsigned int plen)
 {
-    cprintf("[net] netdev_receive: dev=%s, type=%04x, packet=%p, plen=%u\n", dev->name, type, packet, plen);
     struct netproto *entry;
-
+#ifdef DEBUG
+    cprintf("[net] netdev_receive: dev=%s, type=%04x, packet=%p, plen=%u\n", dev->name, type, packet, plen);
+#endif
     for (entry = protocols; entry; entry = entry->next) {
         if (hton16(entry->type) == type) {
             entry->handler(packet, plen, dev);
@@ -72,6 +73,10 @@ netdev_add_netif(struct netdev *dev, struct netif *netif)
         if (entry->family == netif->family) {
             return -1;
         }
+    }
+    if (netif->family == NETIF_FAMILY_IPV4) {
+        char addr[IP_ADDR_STR_LEN];
+        cprintf("[net] Add <%s> to <%s>\n", ip_addr_ntop(&((struct netif_ip *)netif)->unicast, addr, sizeof(addr)), dev->name);
     }
     netif->next = dev->ifs;
     netif->dev  = dev;
@@ -123,8 +128,8 @@ netinit(void)
     // dummy setting
     for (struct netdev *dev = devices; dev; dev = dev->next) {
         if (strncmp(dev->name, "net0", 4) == 0)
-            ip_netif_register(devices, "10.0.2.15", "255.255.255.0", NULL);
+            ip_netif_register(dev, "10.0.2.15", "255.255.255.0", NULL);
         if (strncmp(dev->name, "net1", 4) == 0)
-            ip_netif_register(devices, "192.168.100.10", "255.255.255.0", NULL);
+            ip_netif_register(dev, "192.168.100.10", "255.255.255.0", NULL);
     }
 }

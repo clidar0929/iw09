@@ -317,8 +317,10 @@ ip_rx (uint8_t *dgram, size_t dlen, struct netdev *dev) {
             return;
         }
     }
+#ifdef DEBUG
     cprintf(">>> ip_rx <<<\n");
     ip_dump((struct netif *)iface, dgram, dlen);
+#endif
     payload = (uint8_t *)hdr + hlen;
     plen = ntoh16(hdr->len) - hlen;
     offset = ntoh16(hdr->offset);
@@ -376,8 +378,10 @@ ip_tx_core (struct netif *netif, uint8_t protocol, const uint8_t *buf, size_t le
     hdr->dst = *dst;
     hdr->sum = cksum16((uint16_t *)hdr, hlen, 0);
     memcpy(hdr + 1, buf, len);
+#ifdef DEBUG
     cprintf(">>> ip_tx_core <<<\n");
     ip_dump(netif, (uint8_t *)packet, hlen + len);
+#endif
     return ip_tx_netdev(netif, (uint8_t *)packet, hlen + len, nexthop);
 }
 

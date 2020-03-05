@@ -107,8 +107,10 @@ icmp_rx (uint8_t *packet, size_t plen, ip_addr_t *src, ip_addr_t *dst, struct ne
     if (plen < sizeof(struct icmp_hdr)) {
         return;
     }
+#ifdef DEBUG
     cprintf(">>> icmp_rx <<<\n");
     icmp_dump(netif, src, dst, packet, plen);
+#endif
     hdr = (struct icmp_hdr *)packet;
     switch (hdr->type) {
     case ICMP_TYPE_ECHO:
@@ -131,8 +133,10 @@ icmp_tx (struct netif *netif, uint8_t type, uint8_t code, uint32_t values, uint8
     memcpy(hdr->data, data, len);
     msg_len = sizeof(struct icmp_hdr) + len;
     hdr->sum = cksum16((uint16_t *)hdr, msg_len, 0);
+#ifdef DEBUG
     cprintf(">>> icmp_tx <<<\n");
     icmp_dump(netif, NULL, dst, (uint8_t *)hdr, msg_len);
+#endif
     return ip_tx(netif, IP_PROTOCOL_ICMP, (uint8_t *)hdr, msg_len, dst);
 }
 

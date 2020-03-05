@@ -211,8 +211,10 @@ arp_send_reply (struct netif *netif, const uint8_t *tha, const ip_addr_t *tpa, c
     reply.spa = ((struct netif_ip *)netif)->unicast;
     memcpy(reply.tha, tha, ETHERNET_ADDR_LEN);
     reply.tpa = *tpa;
+#ifdef DEBUG
     cprintf(">>> arp_send_reply <<<\n");
     arp_dump((uint8_t *)&reply, sizeof(reply));
+#endif
     if (netif->dev->ops->xmit(netif->dev, ETHERNET_TYPE_ARP, (uint8_t *)&reply, sizeof(reply), dst) < 0) {
         return -1;
     }
@@ -242,8 +244,10 @@ arp_rx (uint8_t *packet, size_t plen, struct netdev *dev) {
     if (message->hdr.pln != IP_ADDR_LEN) {
         return;
     }
+#ifdef DEBUG
     cprintf(">>> arp_rx <<<\n");
     arp_dump(packet, plen);
+#endif
     acquire(&arplock);
     time(&now);
     if (now - timestamp > 10) {

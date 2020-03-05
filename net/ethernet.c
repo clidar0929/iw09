@@ -91,8 +91,10 @@ ethernet_rx_helper(struct netdev *dev, uint8_t *frame, size_t flen, void (*cb)(s
             return -1;
         }
     }
+#ifdef DEBUG
     cprintf(">>> ethernet_rx <<<\n");
     ethernet_dump(dev, frame, flen);
+#endif
     payload = (uint8_t *)(hdr + 1);
     plen = flen - sizeof(struct ethernet_hdr);
     cb(dev, hdr->type, payload, plen);
@@ -116,8 +118,10 @@ ethernet_tx_helper(struct netdev *dev, uint16_t type, const uint8_t *payload, si
     hdr->type = hton16(type);
     memcpy(hdr + 1, payload, plen);
     flen = sizeof(struct ethernet_hdr) + (plen < ETHERNET_PAYLOAD_SIZE_MIN ? ETHERNET_PAYLOAD_SIZE_MIN : plen);
+#ifdef DEBUG
     cprintf(">>> ethernet_tx <<<\n");
     ethernet_dump(dev, frame, flen);
+#endif
     return cb(dev, frame, flen) == (ssize_t)flen ? (ssize_t)plen : -1;
 }
 
