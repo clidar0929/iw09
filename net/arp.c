@@ -41,15 +41,14 @@ struct arp_entry {
     ip_addr_t pa;
     uint8_t ha[ETHERNET_ADDR_LEN];
     time_t timestamp;
-    //pthread_cond_t cond;
     void *data;
     size_t len;
     struct netif *netif;
 };
 
+static struct spinlock arplock;
 static struct arp_entry arp_table[ARP_TABLE_SIZE];
 static time_t timestamp;
-//static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static char *
 arp_opcode_ntop (uint16_t opcode) {
@@ -245,20 +244,20 @@ arp_rx (uint8_t *packet, size_t plen, struct netdev *dev) {
     }
     cprintf(">>> arp_rx <<<\n");
     arp_dump(packet, plen);
-    //pthread_mutex_lock(&mutex);
+    acquire(&arplock);
     time(&now);
     if (now - timestamp > 10) {
         timestamp = now;
         arp_table_patrol();
     }
     marge = (arp_table_update(dev, &message->spa, message->sha) == 0) ? 1 : 0;
-    //pthread_mutex_unlock(&mutex);
+    release(&arplock);
     netif = netdev_get_netif(dev, NETIF_FAMILY_IPV4);
     if (netif && ((struct netif_ip *)netif)->unicast == message->tpa) {
         if (!marge) {
-            //pthread_mutex_lock(&mutex);
+            acquire(&arplock);
             arp_table_insert(&message->spa, message->sha);
-            //pthread_mutex_unlock(&mutex);
+            release(&arplock);
         }
         if (ntoh16(message->hdr.op) == ARP_OP_REQUEST) {
             arp_send_reply(netif, message->sha, &message->spa, message->sha);
@@ -269,55 +268,43 @@ arp_rx (uint8_t *packet, size_t plen, struct netdev *dev) {
 
 int
 arp_resolve (struct netif *netif, const ip_addr_t *pa, uint8_t *ha, const void *data, size_t len) {
-    //struct timeval now;
-    //struct timespec timeout;
     struct arp_entry *entry;
     int ret;
 
-    //pthread_mutex_lock(&mutex);
-    //gettimeofday(&now, NULL);
-    //timeout.tv_sec = now.tv_sec + 1;
-    //timeout.tv_nsec = now.tv_usec * 1000;
+    acquire(&arplock);
     entry = arp_table_select(pa);
     if (entry) {
         if (memcmp(entry->ha, ETHERNET_ADDR_ANY, ETHERNET_ADDR_LEN) == 0) {
             arp_send_request(netif, pa); /* just in case packet loss */
-            //do {
-            //    ret = pthread_cond_timedwait(&entry->cond, &mutex, &timeout);
-            //} while (ret == EINTR);
-            //if (!entry->used || ret == ETIMEDOUT) {
-            //    if (entry->used) {
-            //        arp_entry_clear(entry);
-            //    }
-            //    pthread_mutex_unlock(&mutex);
-            //    return ARP_RESOLVE_ERROR;
-            //}
+            release(&arplock);
             return ARP_RESOLVE_QUERY;
         }
         memcpy(ha, entry->ha, ETHERNET_ADDR_LEN);
-        //pthread_mutex_unlock(&mutex);
+        release(&arplock);
         return ARP_RESOLVE_FOUND;
     }
     entry = arp_table_freespace();
     if (!entry) {
-        //pthread_mutex_unlock(&mutex);
+        release(&arplock);
         return ARP_RESOLVE_ERROR;
     }
+/*
     if (data) {
         entry->data = (uint8_t*)kalloc();
         if (!entry->data) {
-            //pthread_mutex_unlock(&mutex);
+            release(&arplock);
             return ARP_RESOLVE_ERROR;
         }
         memcpy(entry->data, data, len);
         entry->len = len;
     }
+*/
     entry->used = 1;
     entry->pa = *pa;
     time(&entry->timestamp);
     entry->netif = netif;
     arp_send_request(netif, pa);
-    //pthread_mutex_unlock(&mutex);
+    release(&arplock);
     return ARP_RESOLVE_QUERY;
 }
 
@@ -326,9 +313,7 @@ arp_init (void) {
     struct arp_entry *entry;
 
     time(&timestamp);
-    for (entry = arp_table; entry < array_tailof(arp_table); entry++) {
-        //pthread_cond_init(&entry->cond, NULL);
-    }
+    initlock(&arplock, "arp");
     netproto_register(NETPROTO_TYPE_ARP, arp_rx);
     return 0;
 }
