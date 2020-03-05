@@ -38,6 +38,7 @@ NET_OBJS = \
 	net/common.o\
 	net/e1000.o\
 	net/ethernet.o\
+	net/icmp.o\
 	net/ip.o\
 	net/net.o\
 

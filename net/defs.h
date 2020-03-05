@@ -26,6 +26,10 @@ ssize_t         ethernet_rx_helper(struct netdev *dev, uint8_t *frame, size_t fl
 ssize_t         ethernet_tx_helper(struct netdev *dev, uint16_t type, const uint8_t *payload, size_t plen, const void *dst, ssize_t (*cb)(struct netdev*, uint8_t*, size_t));
 void            ethernet_netdev_setup(struct netdev *dev);
 
+// icmp.c
+int             icmp_tx(struct netif *netif, uint8_t type, uint8_t code, uint32_t values, uint8_t *data, size_t len, ip_addr_t *dst);
+int             icmp_init(void);
+
 // ip.c
 int             ip_addr_pton(const char *p, ip_addr_t *n);
 char *          ip_addr_ntop(const ip_addr_t *n, char *p, size_t size);

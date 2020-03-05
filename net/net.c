@@ -118,6 +118,7 @@ netinit(void)
 {
     arp_init();
     ip_init();
+    icmp_init();
 
     // dummy setting
     for (struct netdev *dev = devices; dev; dev = dev->next) {
