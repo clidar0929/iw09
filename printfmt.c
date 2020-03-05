@@ -2,9 +2,6 @@
 // used in common by printf, sprintf, fprintf, etc.
 // This code is also used by both the kernel and user programs.
 
-#include "../types.h"
-#include "../defs.h"
-
 #include "types.h"
 #include "defs.h"
 #include "error.h"

@@ -12,8 +12,10 @@ OBJS = \
 	log.o\
 	main.o\
 	mp.o\
+	pci.o\
 	picirq.o\
 	pipe.o\
+	printfmt.o\
 	proc.o\
 	sleeplock.o\
 	spinlock.o\
@@ -28,21 +30,16 @@ OBJS = \
 	vectors.o\
 	vm.o\
 
-EXT_OBJS = \
-	ext/pci.o\
-	ext/printfmt.o\
-	ext/string.o\
-
 NET_OBJS = \
-	net/arp.o\
-	net/common.o\
-	net/e1000.o\
-	net/ethernet.o\
-	net/icmp.o\
-	net/ip.o\
-	net/net.o
+	arp.o\
+	common.o\
+	e1000.o\
+	ethernet.o\
+	icmp.o\
+	ip.o\
+	net.o
 
-OBJS += $(EXT_OBJS) $(NET_OBJS)
+OBJS += $(NET_OBJS)
 
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf
@@ -175,7 +172,7 @@ _forktest: forktest.o $(ULIB)
 	$(OBJDUMP) -S _forktest > forktest.asm
 
 mkfs: mkfs.c fs.h
-	gcc -Werror -Wall -o mkfs mkfs.c
+	gcc -Werror -Wall -DBUILD_MKFS -o mkfs mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
@@ -205,18 +202,12 @@ fs.img: mkfs README $(UPROGS)
 
 -include *.d
 
-clean: ext-clean net-clean
+clean:
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*.o *.d *.asm *.sym vectors.S bootblock entryother \
 	initcode initcode.out kernel xv6.img fs.img kernelmemfs \
 	xv6memfs.img mkfs .gdbinit \
 	$(UPROGS)
-
-ext-clean:
-	rm -f ext/*.o ext/*.d
-
-net-clean:
-	rm -f net/*.o net/*.d
 
 # make a printout
 FILES = $(shell grep -v '^\#' runoff.list)

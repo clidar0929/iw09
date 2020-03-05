@@ -1,12 +1,6 @@
-#include "../types.h"
-#include "../defs.h"
-#include "../spinlock.h"
-
-#include "../ext/types.h"
-#include "../ext/defs.h"
-
 #include "types.h"
 #include "defs.h"
+#include "spinlock.h"
 #include "net.h"
 #include "ethernet.h"
 #include "ip.h"

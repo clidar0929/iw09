@@ -1,9 +1,3 @@
-#include "../types.h"
-#include "../defs.h"
-
-#include "../ext/types.h"
-#include "../ext/defs.h"
-
 #include "types.h"
 #include "defs.h"
 #include "net.h"

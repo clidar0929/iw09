@@ -1,14 +1,8 @@
-#include "../types.h"
-#include "../defs.h"
-
 #include "types.h"
 #include "defs.h"
 #include "x86.h"
 #include "pci.h"
 #include "pcireg.h"
-
-#include "../net/types.h"
-#include "../net/defs.h"
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 1;

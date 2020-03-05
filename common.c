@@ -1,8 +1,5 @@
-#include "../types.h"
-#include "../defs.h"
-
-#include "../ext/types.h"
-#include "../net/types.h"
+#include "types.h"
+#include "defs.h"
 
 #define isascii(x) ((x >= 0x00) && (x <= 0x7f))
 #define isprint(x) ((x >= 0x20) && (x <= 0x7e))

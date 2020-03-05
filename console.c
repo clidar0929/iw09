@@ -15,9 +15,6 @@
 #include "proc.h"
 #include "x86.h"
 
-#include "ext/types.h"
-#include "ext/defs.h"
-
 static void consputc(int);
 
 static int panicked = 0;

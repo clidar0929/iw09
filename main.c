@@ -6,12 +6,6 @@
 #include "proc.h"
 #include "x86.h"
 
-#include "ext/types.h"
-#include "ext/defs.h"
-
-#include "net/types.h"
-#include "net/defs.h"
-
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
 extern pde_t *kpgdir;

@@ -1,16 +1,10 @@
-#include "../types.h"
-#include "../defs.h"
-#include "../param.h"
-#include "../memlayout.h"
-#include "../mmu.h"
-#include "../proc.h"
-
-#include "../ext/types.h"
-#include "../ext/defs.h"
-#include "../ext/pci.h"
-
 #include "types.h"
 #include "defs.h"
+#include "param.h"
+#include "memlayout.h"
+#include "mmu.h"
+#include "pci.h"
+#include "proc.h"
 #include "net.h"
 #include "e1000_dev.h"
 
