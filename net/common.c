@@ -2,6 +2,7 @@
 #include "../defs.h"
 
 #include "../ext/types.h"
+#include "../net/types.h"
 
 #define isascii(x) ((x >= 0x00) && (x <= 0x7f))
 #define isprint(x) ((x >= 0x20) && (x <= 0x7e))
@@ -98,4 +99,13 @@ ntoh32(uint32_t n)
     if (!endian)
         endian = byteorder();
     return endian == __LITTLE_ENDIAN ? byteswap32(n) : n;
+}
+
+time_t
+time(time_t *t)
+{
+    acquire(&tickslock);
+    *t = ticks / 100;
+    release(&tickslock);
+    return *t;
 }

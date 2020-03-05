@@ -11,6 +11,7 @@ uint16_t        hton16(uint16_t h);
 uint16_t        ntoh16(uint16_t n);
 uint32_t        hton32(uint32_t h);
 uint32_t        ntoh32(uint32_t n);
+time_t          time(time_t *t);
 
 // e1000.c
 int             e1000_init(struct pci_func *pcif);

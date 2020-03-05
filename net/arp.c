@@ -40,7 +40,7 @@ struct arp_entry {
     unsigned char used;
     ip_addr_t pa;
     uint8_t ha[ETHERNET_ADDR_LEN];
-    //time_t timestamp;
+    time_t timestamp;
     //pthread_cond_t cond;
     void *data;
     size_t len;
@@ -48,7 +48,7 @@ struct arp_entry {
 };
 
 static struct arp_entry arp_table[ARP_TABLE_SIZE];
-//static time_t timestamp;
+static time_t timestamp;
 //static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static char *
@@ -100,7 +100,7 @@ arp_table_update (struct netdev *dev, const ip_addr_t *pa, const uint8_t *ha) {
         return -1;
     }
     memcpy(entry->ha, ha, ETHERNET_ADDR_LEN);
-    //time(&entry->timestamp);
+    time(&entry->timestamp);
     if (entry->data) {
         if (entry->netif->dev != dev) {
             /* warning: receive response from unintended device */
@@ -138,7 +138,7 @@ arp_table_insert (const ip_addr_t *pa, const uint8_t *ha) {
     entry->used = 1;
     entry->pa = *pa;
     memcpy(entry->ha, ha, ETHERNET_ADDR_LEN);
-    //time(&entry->timestamp);
+    time(&entry->timestamp);
     //pthread_cond_broadcast(&entry->cond);
     return 0;
 }
@@ -158,7 +158,6 @@ arp_entry_clear (struct arp_entry *entry) {
     /* !!! Don't touch entry->cond !!! */
 }
 
-/*
 static void
 arp_table_patrol (void) {
     struct arp_entry *entry;
@@ -170,7 +169,6 @@ arp_table_patrol (void) {
         }
     }
 }
-*/
 
 static int
 arp_send_request (struct netif *netif, const ip_addr_t *tpa) {
@@ -225,7 +223,7 @@ arp_send_reply (struct netif *netif, const uint8_t *tha, const ip_addr_t *tpa, c
 static void
 arp_rx (uint8_t *packet, size_t plen, struct netdev *dev) {
     struct arp_ethernet *message;
-    //time_t now;
+    time_t now;
     int marge = 0;
     struct netif *netif;
 
@@ -248,11 +246,11 @@ arp_rx (uint8_t *packet, size_t plen, struct netdev *dev) {
     cprintf(">>> arp_rx <<<\n");
     arp_dump(packet, plen);
     //pthread_mutex_lock(&mutex);
-    //time(&now);
-    //if (now - timestamp > 10) {
-    //    timestamp = now;
-    //    arp_table_patrol();
-    //}
+    time(&now);
+    if (now - timestamp > 10) {
+        timestamp = now;
+        arp_table_patrol();
+    }
     marge = (arp_table_update(dev, &message->spa, message->sha) == 0) ? 1 : 0;
     //pthread_mutex_unlock(&mutex);
     netif = netdev_get_netif(dev, NETIF_FAMILY_IPV4);
@@ -316,7 +314,7 @@ arp_resolve (struct netif *netif, const ip_addr_t *pa, uint8_t *ha, const void *
     }
     entry->used = 1;
     entry->pa = *pa;
-    //time(&entry->timestamp);
+    time(&entry->timestamp);
     entry->netif = netif;
     arp_send_request(netif, pa);
     //pthread_mutex_unlock(&mutex);
@@ -327,7 +325,7 @@ int
 arp_init (void) {
     struct arp_entry *entry;
 
-    //time(&timestamp);
+    time(&timestamp);
     for (entry = arp_table; entry < array_tailof(arp_table); entry++) {
         //pthread_cond_init(&entry->cond, NULL);
     }
