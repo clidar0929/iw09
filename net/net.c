@@ -117,16 +117,13 @@ void
 netinit(void)
 {
     arp_init();
+    ip_init();
 
     // dummy setting
-    struct netif_ip *iface;
-    iface = (struct netif_ip *)kalloc();
-    ((struct netif *)iface)->next = NULL;
-    ((struct netif *)iface)->family = NETIF_FAMILY_IPV4;
-    ((struct netif *)iface)->dev = devices;
-    ip_addr_pton("10.0.2.15", &iface->unicast);
-    ip_addr_pton("255.255.255.0", &iface->netmask);
-    iface->network = iface->unicast & iface->netmask;
-    iface->broadcast = iface->network | ~iface->netmask;
-    devices->ifs = (struct netif *)iface;
+    for (struct netdev *dev = devices; dev; dev = dev->next) {
+        if (strncmp(dev->name, "net0", 4) == 0)
+            ip_netif_register(devices, "10.0.2.15", "255.255.255.0", NULL);
+        if (strncmp(dev->name, "net1", 4) == 0)
+            ip_netif_register(devices, "192.168.100.10", "255.255.255.0", NULL);
+    }
 }
