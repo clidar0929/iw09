@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "defs.h"
+#include "common.h"
 
 #define isascii(x) ((x >= 0x00) && (x <= 0x7f))
 #define isprint(x) ((x >= 0x20) && (x <= 0x7e))
@@ -118,11 +119,54 @@ cksum16 (uint16_t *data, uint16_t size, uint32_t init) {
     return ~(uint16_t)sum;
 }
 
+struct queue_entry *
+queue_push (struct queue_head *queue, void *data, size_t size) {
+    struct queue_entry *entry;
+
+    if (!queue || !data) {
+        return NULL;
+    }
+    entry = (struct queue_entry *)kalloc();
+    if (!entry) {
+        return NULL;
+    }
+    entry->data = data;
+    entry->size = size;
+    entry->next = NULL;
+    if (queue->tail) {
+        queue->tail->next = entry;
+    }
+    queue->tail = entry;
+    if (!queue->next) {
+        queue->next = entry;
+    }
+    queue->num++;
+    return entry;
+}
+
+struct queue_entry *
+queue_pop (struct queue_head *queue) {
+    struct queue_entry *entry;
+
+    if (!queue || !queue->next) {
+        return NULL;
+    }
+    entry = queue->next;
+    queue->next = entry->next;
+    if (!queue->next) {
+        queue->tail = NULL;
+    }
+    queue->num--;
+    return entry;
+}
+
 time_t
 time(time_t *t)
 {
+    time_t tmp;
     acquire(&tickslock);
-    *t = ticks / 100;
+    tmp = ticks / 100;
     release(&tickslock);
-    return *t;
+    if (t) *t = tmp;
+    return tmp;
 }

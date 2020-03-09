@@ -224,6 +224,9 @@ long            strtol(const char *s, char **endptr, int base);
 
 struct netdev;
 struct netif;
+struct queue_head;
+struct queue_entry;
+struct sockaddr;
 
 // arp.c
 int             arp_resolve(struct netif *netif, const ip_addr_t *pa, uint8_t *ha, const void *data, size_t len);
@@ -237,6 +240,8 @@ uint32_t        hton32(uint32_t h);
 uint32_t        ntoh32(uint32_t n);
 uint16_t        cksum16 (uint16_t *data, uint16_t size, uint32_t init);
 time_t          time(time_t *t);
+struct queue_entry *queue_push(struct queue_head *queue, void *data, size_t size);
+struct queue_entry *queue_pop(struct queue_head *queue);
 
 // e1000.c
 int             e1000_init(struct pci_func *pcif);
@@ -257,6 +262,8 @@ int             icmp_init(void);
 int             ip_addr_pton(const char *p, ip_addr_t *n);
 char *          ip_addr_ntop(const ip_addr_t *n, char *p, size_t size);
 struct netif *  ip_netif_register(struct netdev *dev, const char *addr, const char *netmask, const char *gateway);
+struct netif *  ip_netif_by_addr(ip_addr_t *addr);
+struct netif *  ip_netif_by_peer(ip_addr_t *peer);
 ssize_t         ip_tx(struct netif *netif, uint8_t protocol, const uint8_t *buf, size_t len, const ip_addr_t *dst);
 int             ip_add_protocol(uint8_t type, void (*handler)(uint8_t *payload, size_t len, ip_addr_t *src, ip_addr_t *dst, struct netif *netif));
 int             ip_init(void);
@@ -270,6 +277,14 @@ int             netdev_add_netif(struct netdev *dev, struct netif *netif);
 struct netif *  netdev_get_netif(struct netdev *dev, int family);
 int             netproto_register(unsigned short type, void (*handler)(uint8_t *packet, size_t plen, struct netdev *dev));
 void            netinit(void);
+
+// udp.c
+int             udp_init(void);
+int             udp_api_open(void);
+int             udp_api_close(int soc);
+int             udp_api_bind(int soc, struct sockaddr *addr, int addrlen);
+ssize_t         udp_api_recvfrom(int soc, uint8_t *buf, size_t size, struct sockaddr *addr, int *addrlen);
+ssize_t         udp_api_sendto(int soc, uint8_t *buf, size_t len, struct sockaddr *addr, int addrlen);
 
 #define sizeof_member(s, m) sizeof(((s *)NULL)->m)
 #define array_tailof(x) (x + (sizeof(x) / sizeof(*x)))

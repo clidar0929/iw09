@@ -38,6 +38,7 @@ NET_OBJS = \
 	icmp.o\
 	ip.o\
 	net.o\
+	udp.o\
 	sysnet.o\
 
 OBJS += $(NET_OBJS)
