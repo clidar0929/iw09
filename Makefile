@@ -41,6 +41,7 @@ NET_OBJS = \
 	net.o\
 	udp.o\
 	sysnet.o\
+	tcp.o\
 
 OBJS += $(NET_OBJS)
 

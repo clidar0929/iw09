@@ -123,4 +123,6 @@ netinit(void)
     arp_init();
     ip_init();
     icmp_init();
+    udp_init();
+    tcp_init();
 }

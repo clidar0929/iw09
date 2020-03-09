@@ -284,6 +284,17 @@ struct netif *  netdev_get_netif(struct netdev *dev, int family);
 int             netproto_register(unsigned short type, void (*handler)(uint8_t *packet, size_t plen, struct netdev *dev));
 void            netinit(void);
 
+// tcp.c
+int             tcp_init(void);
+int             tcp_api_open(void);
+int             tcp_api_close(int soc);
+int             tcp_api_connect(int soc, struct sockaddr *addr, int addrlen);
+int             tcp_api_bind(int soc, struct sockaddr *addr, int addrlen);
+int             tcp_api_listen(int soc, int backlog);
+int             tcp_api_accept(int soc, struct sockaddr *addr, int *addrlen);
+ssize_t         tcp_api_recv(int soc, uint8_t *buf, size_t size);
+ssize_t         tcp_api_send(int soc, uint8_t *buf, size_t len);
+
 // udp.c
 int             udp_init(void);
 int             udp_api_open(void);
