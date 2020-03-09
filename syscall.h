@@ -25,3 +25,13 @@
 #define SYS_ifset  23
 #define SYS_ifup   24
 #define SYS_ifdown 25
+// socket
+#define SYS_socket   26
+#define SYS_connect  27
+#define SYS_bind     28
+#define SYS_listen   29
+#define SYS_accept   30
+#define SYS_recv     31
+#define SYS_send     32
+#define SYS_recvfrom 33
+#define SYS_sendto   34

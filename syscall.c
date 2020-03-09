@@ -108,7 +108,16 @@ extern int sys_ifget(void);
 extern int sys_ifset(void);
 extern int sys_ifup(void);
 extern int sys_ifdown(void);
-
+// socket
+extern int sys_socket(void);
+extern int sys_connect(void);
+extern int sys_bind(void);
+extern int sys_listen(void);
+extern int sys_accept(void);
+extern int sys_recv(void);
+extern int sys_send(void);
+extern int sys_recvfrom(void);
+extern int sys_sendto(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -137,6 +146,16 @@ static int (*syscalls[])(void) = {
 [SYS_ifset]   sys_ifset,
 [SYS_ifup]    sys_ifup,
 [SYS_ifdown]  sys_ifdown,
+// socket
+[SYS_socket]   sys_socket,
+[SYS_connect]  sys_connect,
+[SYS_bind]     sys_bind,
+[SYS_listen]   sys_listen,
+[SYS_accept]   sys_accept,
+[SYS_recv]     sys_recv,
+[SYS_send]     sys_send,
+[SYS_recvfrom] sys_recvfrom,
+[SYS_sendto]   sys_sendto,
 };
 
 void

@@ -157,6 +157,10 @@ int             fetchint(uint, int*);
 int             fetchstr(uint, char**);
 void            syscall(void);
 
+// sysfile.c
+int             argfd(int, int*, struct file**);
+int             fdalloc(struct file*);
+
 // timer.c
 void            timerinit(void);
 
@@ -226,6 +230,7 @@ struct netdev;
 struct netif;
 struct queue_head;
 struct queue_entry;
+struct socket;
 struct sockaddr;
 
 // arp.c
@@ -243,7 +248,6 @@ struct queue_entry *queue_push(struct queue_head *queue, void *data, size_t size
 struct queue_entry *queue_pop(struct queue_head *queue);
 time_t          time(time_t *t);
 unsigned long   random(void);
-
 
 // e1000.c
 int             e1000_init(struct pci_func *pcif);
@@ -302,6 +306,18 @@ int             udp_api_close(int soc);
 int             udp_api_bind(int soc, struct sockaddr *addr, int addrlen);
 ssize_t         udp_api_recvfrom(int soc, uint8_t *buf, size_t size, struct sockaddr *addr, int *addrlen);
 ssize_t         udp_api_sendto(int soc, uint8_t *buf, size_t len, struct sockaddr *addr, int addrlen);
+
+// socket.c
+struct file *   socketalloc(int domain, int type, int protocol);
+void            socketclose(struct socket*);
+int             socketconnect(struct socket*, struct sockaddr*, int);
+int             socketbind(struct socket*, struct sockaddr*, int);
+int             socketlisten(struct socket*, int);
+struct file *   socketaccept(struct socket*, struct sockaddr*, int*);
+int             socketread(struct socket*, char*, int);
+int             socketwrite(struct socket*, char*, int);
+int             socketrecvfrom(struct socket*, char*, int, struct sockaddr*, int*);
+int             socketsendto(struct socket*, char*, int, struct sockaddr*, int);
 
 #define sizeof_member(s, m) sizeof(((s *)NULL)->m)
 #define array_tailof(x) (x + (sizeof(x) / sizeof(*x)))
