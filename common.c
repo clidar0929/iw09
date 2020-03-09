@@ -170,3 +170,19 @@ time(time_t *t)
     if (t) *t = tmp;
     return tmp;
 }
+
+unsigned long
+random(void)
+{
+    static int initialized = 0;
+
+    if (!initialized) {
+        acquire(&tickslock);
+        if (!initialized) {
+            initialized = 1;
+            init_genrand(ticks);
+        }
+        release(&tickslock);
+    }
+    return genrand_int32();
+}

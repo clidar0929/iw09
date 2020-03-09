@@ -239,9 +239,11 @@ uint16_t        ntoh16(uint16_t n);
 uint32_t        hton32(uint32_t h);
 uint32_t        ntoh32(uint32_t n);
 uint16_t        cksum16 (uint16_t *data, uint16_t size, uint32_t init);
-time_t          time(time_t *t);
 struct queue_entry *queue_push(struct queue_head *queue, void *data, size_t size);
 struct queue_entry *queue_pop(struct queue_head *queue);
+time_t          time(time_t *t);
+unsigned long   random(void);
+
 
 // e1000.c
 int             e1000_init(struct pci_func *pcif);
@@ -267,6 +269,10 @@ struct netif *  ip_netif_by_peer(ip_addr_t *peer);
 ssize_t         ip_tx(struct netif *netif, uint8_t protocol, const uint8_t *buf, size_t len, const ip_addr_t *dst);
 int             ip_add_protocol(uint8_t type, void (*handler)(uint8_t *payload, size_t len, ip_addr_t *src, ip_addr_t *dst, struct netif *netif));
 int             ip_init(void);
+
+// mt19937ar.c
+void            init_genrand(unsigned long s);
+unsigned long   genrand_int32(void);
 
 // net.c
 struct netdev * netdev_root(void);

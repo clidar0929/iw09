@@ -37,6 +37,7 @@ NET_OBJS = \
 	ethernet.o\
 	icmp.o\
 	ip.o\
+	mt19937ar.o\
 	net.o\
 	udp.o\
 	sysnet.o\
