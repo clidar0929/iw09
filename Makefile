@@ -208,6 +208,8 @@ NET_UPROGS=\
 	_ifset\
 	_ifup\
 	_ifdown\
+	_tcpechoserver\
+	_udpechoserver\
 
 UPROGS += $(NET_UPROGS)
 
