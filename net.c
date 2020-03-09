@@ -71,10 +71,12 @@ netdev_add_netif(struct netdev *dev, struct netif *netif)
             return -1;
         }
     }
+#ifdef DEBUG
     if (netif->family == NETIF_FAMILY_IPV4) {
         char addr[IP_ADDR_STR_LEN];
         cprintf("[net] Add <%s> to <%s>\n", ip_addr_ntop(&((struct netif_ip *)netif)->unicast, addr, sizeof(addr)), dev->name);
     }
+#endif
     netif->next = dev->ifs;
     netif->dev  = dev;
     dev->ifs = netif;
@@ -121,12 +123,4 @@ netinit(void)
     arp_init();
     ip_init();
     icmp_init();
-
-    // dummy setting
-    for (struct netdev *dev = devices; dev; dev = dev->next) {
-        if (strncmp(dev->name, "net0", 4) == 0)
-            ip_netif_register(dev, "10.0.2.15", "255.255.255.0", NULL);
-        if (strncmp(dev->name, "net1", 4) == 0)
-            ip_netif_register(dev, "192.168.100.10", "255.255.255.0", NULL);
-    }
 }

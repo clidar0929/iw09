@@ -123,23 +123,42 @@ e1000_tx_init(struct e1000 *dev)
     e1000_reg_write(dev, E1000_TDT, 0);
     // set tx control register
     e1000_reg_write(dev, E1000_TCTL, (
-        E1000_TCTL_EN  | /* enable tx */
         E1000_TCTL_PSP | /* pad short packets */
         0)
     );
 }
 
 static int
-e1000_open(struct netdev *dev)
+e1000_open(struct netdev *netdev)
 {
-    // TODO
+    struct e1000 *dev = (struct e1000 *)netdev->priv;
+    // enable interrupts
+    e1000_reg_write(dev, E1000_IMS, E1000_IMS_RXT0);
+    // clear existing pending interrupts
+    e1000_reg_read(dev, E1000_ICR);
+    // enable RX/TX
+    e1000_reg_write(dev, E1000_RCTL, e1000_reg_read(dev, E1000_RCTL) | E1000_RCTL_EN);
+    e1000_reg_write(dev, E1000_TCTL, e1000_reg_read(dev, E1000_TCTL) | E1000_TCTL_EN);
+    // link up
+    e1000_reg_write(dev, E1000_CTL, e1000_reg_read(dev, E1000_CTL) | E1000_CTL_SLU);
+    netdev->flags |= NETDEV_FLAG_UP;
     return 0;
 }
 
 static int
-e1000_stop(struct netdev *dev)
+e1000_stop(struct netdev *netdev)
 {
-    // TODO
+    struct e1000 *dev = (struct e1000 *)netdev->priv;
+    // disable interrupts
+    e1000_reg_write(dev, E1000_IMC, E1000_IMS_RXT0);
+    // clear existing pending interrupts
+    e1000_reg_read(dev, E1000_ICR);
+    // disable RX/TX
+    e1000_reg_write(dev, E1000_RCTL, e1000_reg_read(dev, E1000_RCTL) & ~E1000_RCTL_EN);
+    e1000_reg_write(dev, E1000_TCTL, e1000_reg_read(dev, E1000_TCTL) & ~E1000_TCTL_EN);
+    // link down
+    e1000_reg_write(dev, E1000_CTL, e1000_reg_read(dev, E1000_CTL) & ~E1000_CTL_SLU);
+    netdev->flags &= ~NETDEV_FLAG_UP;
     return 0;
 }
 
@@ -254,20 +273,12 @@ e1000_init(struct pci_func *pcif)
     // Register I/O APIC
     dev->irq = pcif->irq_line;
     ioapicenable(dev->irq, ncpu - 1);
-    // Link Up
-    e1000_reg_write(dev, E1000_CTL, e1000_reg_read(dev, E1000_CTL) | E1000_CTL_SLU);
     // Initialize Multicast Table Array
     for (int n = 0; n < 128; n++)
         e1000_reg_write(dev, E1000_MTA + (n << 2), 0);
-    // Enable interrupts
-    e1000_reg_write(dev, E1000_IMS, E1000_IMS_RXT0);
-    // Clear existing pending interrupts
-    e1000_reg_read(dev, E1000_ICR);
     // Initialize RX/TX
     e1000_rx_init(dev);
     e1000_tx_init(dev);
-    // Enable RX
-    e1000_reg_write(dev, E1000_RCTL, e1000_reg_read(dev, E1000_RCTL) | E1000_RCTL_EN);
     // Alloc netdev
     struct netdev *netdev = netdev_alloc(e1000_setup);
     memcpy(netdev->addr, dev->addr, 6);

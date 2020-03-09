@@ -23,6 +23,11 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+// networking
+int ifget(const char*);
+int ifset(const char*, const char*, const char*);
+int ifup(const char*);
+int ifdown(const char*);
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -29,3 +29,8 @@ SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
+# networking
+SYSCALL(ifget)
+SYSCALL(ifset)
+SYSCALL(ifup)
+SYSCALL(ifdown)

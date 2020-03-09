@@ -8,6 +8,7 @@
 #define E1000_EERD     (0x0014)  /* EEPROM Read - RW */
 #define E1000_ICR      (0x00C0)  /* Interrupt Cause Read - R */
 #define E1000_IMS      (0x00D0)  /* Interrupt Mask Set - RW */
+#define E1000_IMC      (0x00D8)  /* Interrupt Mask Clear - RW */
 #define E1000_RCTL     (0x0100)  /* RX Control - RW */
 #define E1000_TCTL     (0x0400)  /* TX Control - RW */
 #define E1000_TIPG     (0x0410)  /* TX Inter-packet gap -RW */

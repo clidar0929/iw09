@@ -37,7 +37,8 @@ NET_OBJS = \
 	ethernet.o\
 	icmp.o\
 	ip.o\
-	net.o
+	net.o\
+	sysnet.o\
 
 OBJS += $(NET_OBJS)
 
@@ -196,6 +197,15 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
+
+
+NET_UPROGS=\
+        _ifget\
+        _ifset\
+        _ifup\
+        _ifdown\
+
+UPROGS += $(NET_UPROGS)
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

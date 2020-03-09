@@ -6,10 +6,6 @@
 #include "defs.h"
 #include "error.h"
 
-#define va_start(ap, last) __builtin_va_start(ap, last)
-#define va_arg(ap, type) __builtin_va_arg(ap, type)
-#define va_end(ap) __builtin_va_end(ap)
-
 /*
  * Space or zero padding and a field width are supported for the numeric
  * formats only.
