@@ -2,6 +2,11 @@ xv6-net
 =======
 This project is implement TCP/IP Network Stack on xv6.
 
+The network stack uses [https://github.com/pandax381/microps](https://github.com/pandax381/microps).
+
+microps is a user-mode TCP/IP stack that I'm developing.
+This project ported it to the xv6 kernel.
+
 ## Features
 
 - [x] Network device
