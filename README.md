@@ -46,7 +46,14 @@ This project is implement TCP/IP Network Stack on xv6.
     - [x] sendto
   - [x] Socket descriptor (compatible with File descriptor)
   - [x] Socket address (struct sockaddr)
-  
+
+## Task
+
+- [ ] ARP resolution waiting queue (Currently discards data)
+- [ ] TCP timer (Currently retransmission timer is not working)
+- [ ] DHCP client
+- [ ] DNS stub resolver
+
 ## License
 
 xv6: Under the MIT License. See [LICENSE](./LICENSE) file.
