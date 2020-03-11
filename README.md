@@ -7,6 +7,8 @@ The network stack uses https://github.com/pandax381/microps
 microps is a user-mode TCP/IP stack that I'm developing.
 This project ported it to the xv6 kernel.
 
+![demo](https://github.com/pandax381/xv6-net/blob/net/doc/demo.gif)
+
 ## Features
 
 - [x] Network device
