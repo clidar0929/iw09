@@ -14,8 +14,8 @@ This project is implement TCP/IP Network Stack on xv6.
     - [x] Interrupt trap
     - [x] Detect interrupt souce (if multiple NICs)
   - [x] Device abstraction
-    - [x] Define structure for device abstraction (struct netdev)
-    - [x] Support multiple link protocols and network devices
+    - [x] Define structure for physical device abstraction (struct netdev)
+    - [x] Support multiple link protocols and physical devices
 - [x] Protocols
   - [x] Ethernet
   - [x] ARP
@@ -24,7 +24,28 @@ This project is implement TCP/IP Network Stack on xv6.
   - [x] UDP
   - [x] TCP
 - [x] Network Interface
+  - [x] Interface abstraction
+    - [x] Define structure for logical interface abstraction (struct netif)
+    - [x] Support multiple address family and logical interfaces
+  - [x] Configuration
+    - [x] Makeshift systemcalls and commands
+      - [x] ifget
+      - [x] ifset
+      - [x] ifup
+      - [x] ifdown
 - [x] Socket API
+  - [x] Systemcalls
+    - [x] socket
+    - [x] bind
+    - [x] connect
+    - [x] listen
+    - [x] accept
+    - [x] recv
+    - [x] send
+    - [x] recvfrom
+    - [x] sendto
+  - [x] Socket descriptor (compatible with File descriptor)
+  - [x] Socket address (struct sockaddr)
   
 ## License
 
