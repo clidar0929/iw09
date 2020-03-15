@@ -73,6 +73,14 @@ $ sudo make docker-run
 $ ifset net1 172.16.100.2 255.255.255.0
 $ ifup net1
 $ tcpechoserver
+Starting TCP Echo Server
+socket: success, soc=3
+bind: success, self=0.0.0.0:7
+waiting for connection...
+
+...(client connection information and received data are output)...
+
+(switch to qemu monitor with Ctrl-a + c and exit by typing `quit`)
 ```
 
 *Ping Test (at another terminal)*
