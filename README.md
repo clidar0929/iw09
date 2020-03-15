@@ -61,6 +61,30 @@ This project ported it to the xv6 kernel.
 - [ ] DHCP client
 - [ ] DNS stub resolver
 
+## Tutorial
+
+*Build & Run*
+```
+$ sudo make docker-build
+$ sudo make docker-run
+
+...(xv6-net starts on qemu in the container)...
+
+$ ifset net1 172.16.100.2 255.255.255.0
+$ ifup net1
+$ tcpechoserver
+```
+
+*Ping Test (at another terminal)*
+```
+$ sudo docker exec -it xv6-net ping 172.16.100.2
+```
+
+*TCP Test (at another terminal)*
+```
+$ sudo docker exec -it xv6-net nc 172.16.100.2 7
+```
+
 ## License
 
 xv6: Under the MIT License. See [LICENSE](./LICENSE) file.
