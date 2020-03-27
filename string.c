@@ -106,6 +106,14 @@ strlen(const char *s)
 /* copy from JOS */
 
 int
+strcmp(const char *p, const char *q)
+{
+  while(*p && *p == *q)
+    p++, q++;
+  return (uchar)*p - (uchar)*q;
+}
+
+int
 strnlen(const char *s, size_t size)
 {
         int n;

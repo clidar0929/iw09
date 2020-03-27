@@ -162,3 +162,10 @@ filewrite(struct file *f, char *addr, int n)
   panic("filewrite");
 }
 
+int
+fileioctl(struct file *f, int req, void *arg)
+{
+  if(f->type == FD_SOCKET)
+    return socketioctl(f->socket, req, arg);
+  return -1;
+}

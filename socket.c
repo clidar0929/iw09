@@ -8,6 +8,8 @@
 #include "spinlock.h"
 #include "sleeplock.h"
 #include "file.h"
+#include "net.h"
+#include "ip.h"
 #include "socket.h"
 
 struct socket {
@@ -128,4 +130,102 @@ socketsendto(struct socket *s, char *buf, int n, struct sockaddr *addr, int addr
     if (s->type != SOCK_DGRAM)
         return -1;
     return udp_api_sendto(s->desc, (uint8_t *)buf, n, addr, addrlen);
+}
+
+int
+socketioctl(struct socket *s, int req, void *arg) {
+    struct ifreq *ifreq;
+    struct netdev *dev;
+    struct netif *iface;
+
+    switch (req) {
+    case SIOCGIFINDEX:
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_name(ifreq->ifr_name);
+        if (!dev)
+            return -1;
+        ifreq->ifr_ifindex = dev->index;
+        break;
+    case SIOCGIFNAME:
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_index(ifreq->ifr_ifindex);
+        if (!dev)
+            return -1;
+        strncpy(ifreq->ifr_name, dev->name, sizeof(ifreq->ifr_name));
+        break;
+    case SIOCSIFNAME:
+        /* TODO */
+        break;
+    case SIOCGIFHWADDR:
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_name(ifreq->ifr_name);
+        if (!dev)
+            return -1;
+        /* TODO: HW type check */
+        memcpy(ifreq->ifr_hwaddr.sa_data, dev->addr, dev->alen);
+        break;
+    case SIOCSIFHWADDR:
+        /* TODO */
+        break;
+    case SIOCGIFFLAGS:
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_name(ifreq->ifr_name);
+        if (!dev)
+            return -1;
+        ifreq->ifr_flags = dev->flags;
+        break;
+    case SIOCSIFFLAGS:
+        break;
+    case SIOCGIFADDR:
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_name(ifreq->ifr_name);
+        if (!dev)
+            return -1;
+        iface = netdev_get_netif(dev, ifreq->ifr_addr.sa_family);
+        if (!iface)
+            return -1;
+        ((struct sockaddr_in *)&ifreq->ifr_addr)->sin_addr = ((struct netif_ip *)iface)->unicast;
+        break;
+    case SIOCSIFADDR:
+        /* TODO */
+        break;
+    case SIOCGIFNETMASK:
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_name(ifreq->ifr_name);
+        if (!dev)
+            return -1;
+        iface = netdev_get_netif(dev, ifreq->ifr_addr.sa_family);
+        if (!iface)
+            return -1;
+        ((struct sockaddr_in *)&ifreq->ifr_netmask)->sin_addr = ((struct netif_ip *)iface)->netmask;
+        break;
+    case SIOCSIFNETMASK:
+        /* TODO */
+        break;
+    case SIOCGIFBRDADDR:
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_name(ifreq->ifr_name);
+        if (!dev)
+            return -1;
+        iface = netdev_get_netif(dev, ifreq->ifr_addr.sa_family);
+        if (!iface)
+            return -1;
+        ((struct sockaddr_in *)&ifreq->ifr_broadaddr)->sin_addr = ((struct netif_ip *)iface)->broadcast;
+        break;
+    case SIOCSIFBRDADDR:
+        /* TODO */
+        break;
+    case SIOCGIFMTU:
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_name(ifreq->ifr_name);
+        if (!dev)
+            return -1;
+        ifreq->ifr_mtu = dev->mtu;
+        break;
+    case SIOCSIFMTU:
+        break;
+    default:
+        return -1;
+    }
+    return 0;
 }

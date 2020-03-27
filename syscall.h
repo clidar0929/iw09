@@ -25,6 +25,7 @@
 #define SYS_ifset  23
 #define SYS_ifup   24
 #define SYS_ifdown 25
+#define SYS_ioctl  35
 // socket
 #define SYS_socket   26
 #define SYS_connect  27

@@ -33,6 +33,7 @@ void            fileinit(void);
 int             fileread(struct file*, char*, int n);
 int             filestat(struct file*, struct stat*);
 int             filewrite(struct file*, char*, int n);
+int             fileioctl(struct file*, int, void*);
 
 // fs.c
 void            readsb(int dev, struct superblock *sb);
@@ -208,6 +209,7 @@ void            vprintfmt(void (*)(int, void*), void*, const char*, va_list);
 int             snprintf(char *buf, int n, const char *fmt, ...);
 
 // string.c
+int             strcmp(const char *p, const char *q);
 int             strnlen(const char *s, size_t size);
 long            strtol(const char *s, char **endptr, int base);
 
@@ -282,6 +284,8 @@ unsigned long   genrand_int32(void);
 struct netdev * netdev_root(void);
 struct netdev * netdev_alloc(void (*setup)(struct netdev *));
 int             netdev_register(struct netdev *dev);
+struct netdev * netdev_by_index(int index);
+struct netdev * netdev_by_name(const char *name);
 void            netdev_receive(struct netdev *dev, uint16_t type, uint8_t *packet, unsigned int plen);
 int             netdev_add_netif(struct netdev *dev, struct netif *netif);
 struct netif *  netdev_get_netif(struct netdev *dev, int family);
@@ -318,6 +322,7 @@ int             socketread(struct socket*, char*, int);
 int             socketwrite(struct socket*, char*, int);
 int             socketrecvfrom(struct socket*, char*, int, struct sockaddr*, int*);
 int             socketsendto(struct socket*, char*, int, struct sockaddr*, int);
+int             socketioctl(struct socket*, int, void*);
 
 #define sizeof_member(s, m) sizeof(((s *)NULL)->m)
 #define array_tailof(x) (x + (sizeof(x) / sizeof(*x)))

@@ -34,6 +34,7 @@ SYSCALL(ifget)
 SYSCALL(ifset)
 SYSCALL(ifup)
 SYSCALL(ifdown)
+SYSCALL(ioctl)
 # socket
 SYSCALL(socket)
 SYSCALL(bind)

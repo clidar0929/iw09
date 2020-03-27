@@ -29,6 +29,7 @@ int ifget(const char*);
 int ifset(const char*, const char*, const char*);
 int ifup(const char*);
 int ifdown(const char*);
+int ioctl(int, int, ...);
 // socket
 int socket(int, int, int);
 int connect(int, struct sockaddr*, int);

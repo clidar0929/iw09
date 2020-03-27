@@ -108,6 +108,7 @@ extern int sys_ifget(void);
 extern int sys_ifset(void);
 extern int sys_ifup(void);
 extern int sys_ifdown(void);
+extern int sys_ioctl(void);
 // socket
 extern int sys_socket(void);
 extern int sys_connect(void);
@@ -146,6 +147,7 @@ static int (*syscalls[])(void) = {
 [SYS_ifset]   sys_ifset,
 [SYS_ifup]    sys_ifup,
 [SYS_ifdown]  sys_ifdown,
+[SYS_ioctl]   sys_ioctl,
 // socket
 [SYS_socket]   sys_socket,
 [SYS_connect]  sys_connect,

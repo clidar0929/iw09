@@ -15,6 +15,7 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "ioccom.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -441,4 +442,18 @@ sys_pipe(void)
   fd[0] = fd0;
   fd[1] = fd1;
   return 0;
+}
+
+int
+sys_ioctl(void)
+{
+  struct file *f;
+  int req;
+  void *arg;
+
+  if(argfd(0, 0, &f) < 0 || argint(1, &req) < 0)
+    return -1;
+  if(argptr(2, (void*)&arg, IOCPARM_LEN(req)) < 0)
+        return -1;
+  return fileioctl(f, req, arg);
 }

@@ -39,6 +39,7 @@ struct netdev_ops {
 struct netdev {
     struct netdev *next;
     struct netif *ifs;
+    int index;
     char name[IFNAMSIZ];
     uint16_t type;
     uint16_t mtu;

@@ -32,7 +32,8 @@ netdev_alloc(void (*setup)(struct netdev *))
         return NULL;
     }
     memset(dev, 0, sizeof(struct netdev));
-    snprintf(dev->name, sizeof(dev->name), "net%d", index++);
+    dev->index = index++;
+    snprintf(dev->name, sizeof(dev->name), "net%d", dev->index);
     setup(dev);
     return dev;
 }
@@ -44,6 +45,30 @@ netdev_register(struct netdev *dev)
     dev->next = devices;
     devices = dev;
     return 0;
+}
+
+struct netdev *
+netdev_by_index(int index)
+{
+    struct netdev *dev;
+
+    for (dev = devices; dev; dev = dev->next)
+        if (dev->index == index)
+            return dev;
+
+    return NULL;
+}
+
+struct netdev *
+netdev_by_name(const char *name)
+{
+    struct netdev *dev;
+
+    for (dev = devices; dev; dev = dev->next)
+        if (strcmp(dev->name, name) == 0)
+            return dev;
+
+    return NULL;
 }
 
 void
