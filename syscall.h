@@ -20,19 +20,14 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
-// networking
-#define SYS_ifget  22
-#define SYS_ifset  23
-#define SYS_ifup   24
-#define SYS_ifdown 25
-#define SYS_ioctl  35
-// socket
-#define SYS_socket   26
-#define SYS_connect  27
-#define SYS_bind     28
-#define SYS_listen   29
-#define SYS_accept   30
-#define SYS_recv     31
-#define SYS_send     32
-#define SYS_recvfrom 33
-#define SYS_sendto   34
+
+#define SYS_ioctl    22
+#define SYS_socket   23
+#define SYS_connect  24
+#define SYS_bind     25
+#define SYS_listen   26
+#define SYS_accept   27
+#define SYS_recv     28
+#define SYS_send     29
+#define SYS_recvfrom 30
+#define SYS_sendto   31

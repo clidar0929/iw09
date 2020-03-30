@@ -284,6 +284,7 @@ e1000_init(struct pci_func *pcif)
     memcpy(netdev->addr, dev->addr, 6);
     netdev->priv = dev;
     netdev->ops = &e1000_ops;
+    netdev->flags |= NETDEV_FLAG_RUNNING;
     // Register netdev
     netdev_register(netdev);
     dev->netdev = netdev;

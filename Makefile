@@ -204,10 +204,7 @@ UPROGS=\
 	_zombie\
 
 NET_UPROGS=\
-	_ifget\
-	_ifset\
-	_ifup\
-	_ifdown\
+    _ifconfig\
 	_tcpechoserver\
 	_udpechoserver\
 

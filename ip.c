@@ -161,7 +161,7 @@ ip_route_lookup (const struct netif *netif, const ip_addr_t *dst) {
  */
 
 struct netif *
-ip_netif_alloc (const char *addr, const char *netmask, const char *gateway) {
+ip_netif_alloc (ip_addr_t unicast, ip_addr_t netmask, ip_addr_t gateway) {
     struct netif_ip *iface;
     ip_addr_t gw;
 
@@ -172,14 +172,8 @@ ip_netif_alloc (const char *addr, const char *netmask, const char *gateway) {
     ((struct netif *)iface)->next = NULL;
     ((struct netif *)iface)->family = NETIF_FAMILY_IPV4;
     ((struct netif *)iface)->dev = NULL;
-    if (ip_addr_pton(addr, &iface->unicast) == -1) {
-        kfree((char*)iface);
-        return NULL;
-    }
-    if (ip_addr_pton(netmask, &iface->netmask) == -1) {
-        kfree((char*)iface);
-        return NULL;
-    }
+    iface->unicast = unicast;
+    iface->netmask = netmask;
     iface->network = iface->unicast & iface->netmask;
     iface->broadcast = iface->network | ~iface->netmask;
     if (ip_route_add(iface->network, iface->netmask, IP_ADDR_ANY, (struct netif *)iface) == -1) {
@@ -187,11 +181,7 @@ ip_netif_alloc (const char *addr, const char *netmask, const char *gateway) {
         return NULL;
     }
     if (gateway) {
-        if (ip_addr_pton(gateway, &gw) == -1) {
-            kfree((char*)iface);
-            return NULL;
-        }
-        if (ip_route_add(IP_ADDR_ANY, IP_ADDR_ANY, gw, (struct netif *)iface) == -1) {
+        if (ip_route_add(IP_ADDR_ANY, IP_ADDR_ANY, gateway, (struct netif *)iface) == -1) {
             kfree((char*)iface);
             return NULL;
         }
@@ -202,8 +192,20 @@ ip_netif_alloc (const char *addr, const char *netmask, const char *gateway) {
 struct netif *
 ip_netif_register (struct netdev *dev, const char *addr, const char *netmask, const char *gateway) {
     struct netif *netif;
+    ip_addr_t unicast, mask, gw = 0;
 
-    netif = ip_netif_alloc(addr, netmask, gateway);
+    if (ip_addr_pton(addr, &unicast) == -1) {
+        return NULL;
+    }
+    if (ip_addr_pton(netmask, &mask) == -1) {
+        return NULL;
+    }
+    if (gateway) {
+        if (ip_addr_pton(gateway, &gw) == -1) {
+            return NULL;
+        }
+    }
+    netif = ip_netif_alloc(unicast, mask, gw);
     if (!netif) {
         return NULL;
     }
@@ -215,28 +217,21 @@ ip_netif_register (struct netdev *dev, const char *addr, const char *netmask, co
 }
 
 int
-ip_netif_reconfigure (struct netif *netif, const char *addr, const char *netmask, const char *gateway) {
+ip_netif_reconfigure (struct netif *netif, ip_addr_t unicast, ip_addr_t netmask, ip_addr_t gateway) {
     struct netif_ip *iface;
     ip_addr_t gw;
 
     iface = (struct netif_ip *)netif;
     ip_route_del(netif);
-    if (ip_addr_pton(addr, &iface->unicast) == -1) {
-        return -1;
-    }
-    if (ip_addr_pton(netmask, &iface->netmask) == -1) {
-        return -1;
-    }
+    iface->unicast = unicast;
+    iface->netmask = netmask;
     iface->network = iface->unicast & iface->netmask;
     iface->broadcast = iface->network | ~iface->netmask;
     if (ip_route_add(iface->network, iface->netmask, IP_ADDR_ANY, netif) == -1) {
         return -1;
     }
     if (gateway) {
-        if (ip_addr_pton(gateway, &gw) == -1) {
-            return -1;
-        }
-        if (ip_route_add(IP_ADDR_ANY, IP_ADDR_ANY, gw, netif) == -1) {
+        if (ip_route_add(IP_ADDR_ANY, IP_ADDR_ANY, gateway, netif) == -1) {
             return -1;
         }
     }

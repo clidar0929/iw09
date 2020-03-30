@@ -269,7 +269,9 @@ int             icmp_init(void);
 // ip.c
 int             ip_addr_pton(const char *p, ip_addr_t *n);
 char *          ip_addr_ntop(const ip_addr_t *n, char *p, size_t size);
+struct netif *  ip_netif_alloc(ip_addr_t unicast, ip_addr_t netmask, ip_addr_t gateway);
 struct netif *  ip_netif_register(struct netdev *dev, const char *addr, const char *netmask, const char *gateway);
+int             ip_netif_reconfigure(struct netif *netif, ip_addr_t unicast, ip_addr_t netmask, ip_addr_t gateway);
 struct netif *  ip_netif_by_addr(ip_addr_t *addr);
 struct netif *  ip_netif_by_peer(ip_addr_t *peer);
 ssize_t         ip_tx(struct netif *netif, uint8_t protocol, const uint8_t *buf, size_t len, const ip_addr_t *dst);

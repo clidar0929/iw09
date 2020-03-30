@@ -24,13 +24,8 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-// networking
-int ifget(const char*);
-int ifset(const char*, const char*, const char*);
-int ifup(const char*);
-int ifdown(const char*);
+
 int ioctl(int, int, ...);
-// socket
 int socket(int, int, int);
 int connect(int, struct sockaddr*, int);
 int bind(int, struct sockaddr*, int);

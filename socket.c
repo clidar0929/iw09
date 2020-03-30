@@ -175,6 +175,16 @@ socketioctl(struct socket *s, int req, void *arg) {
         ifreq->ifr_flags = dev->flags;
         break;
     case SIOCSIFFLAGS:
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_name(ifreq->ifr_name);
+        if (!dev)
+            return -1;
+        if ((dev->flags & IFF_UP) != (ifreq->ifr_flags & IFF_UP)) {
+            if (ifreq->ifr_flags & IFF_UP)
+                dev->ops->open(dev);
+            else
+                dev->ops->stop(dev);
+        }
         break;
     case SIOCGIFADDR:
         ifreq = (struct ifreq *)arg;
@@ -187,7 +197,20 @@ socketioctl(struct socket *s, int req, void *arg) {
         ((struct sockaddr_in *)&ifreq->ifr_addr)->sin_addr = ((struct netif_ip *)iface)->unicast;
         break;
     case SIOCSIFADDR:
-        /* TODO */
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_name(ifreq->ifr_name);
+        if (!dev)
+            return -1;
+        iface = netdev_get_netif(dev, ifreq->ifr_addr.sa_family);
+        if (iface) {
+            if (ip_netif_reconfigure(iface, ((struct sockaddr_in *)&ifreq->ifr_addr)->sin_addr, ((struct netif_ip *)iface)->netmask, ((struct netif_ip *)iface)->gateway) == -1)
+                return -1;
+        } else {
+            iface = ip_netif_alloc(((struct sockaddr_in *)&ifreq->ifr_addr)->sin_addr, 0xffffffff, 0);
+            if (!iface)
+                return -1;
+            netdev_add_netif(dev, iface);
+        }
         break;
     case SIOCGIFNETMASK:
         ifreq = (struct ifreq *)arg;
@@ -200,7 +223,15 @@ socketioctl(struct socket *s, int req, void *arg) {
         ((struct sockaddr_in *)&ifreq->ifr_netmask)->sin_addr = ((struct netif_ip *)iface)->netmask;
         break;
     case SIOCSIFNETMASK:
-        /* TODO */
+        ifreq = (struct ifreq *)arg;
+        dev = netdev_by_name(ifreq->ifr_name);
+        if (!dev)
+            return -1;
+        iface = netdev_get_netif(dev, ifreq->ifr_addr.sa_family);
+        if (!iface)
+            return -1;
+        if (ip_netif_reconfigure(iface, ((struct netif_ip *)iface)->unicast, ((struct sockaddr_in *)&ifreq->ifr_addr)->sin_addr, ((struct netif_ip *)iface)->gateway) == -1)
+            return -1;
         break;
     case SIOCGIFBRDADDR:
         ifreq = (struct ifreq *)arg;
