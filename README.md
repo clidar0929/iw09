@@ -35,11 +35,7 @@ This project ported it to the xv6 kernel.
     - [x] Define structure for logical interface abstraction (struct netif)
     - [x] Support multiple address family and logical interfaces
   - [x] Configuration
-    - [x] Makeshift systemcalls and commands
-      - [x] ifget
-      - [x] ifset
-      - [x] ifup
-      - [x] ifdown
+    - [x] ifconfig
 - [x] Socket API
   - [x] Systemcalls
     - [x] socket
@@ -70,8 +66,8 @@ $ sudo make docker-run
 
 ...(xv6-net starts on qemu in the container)...
 
-$ ifset net1 172.16.100.2 255.255.255.0
-$ ifup net1
+$ ifconfig net1 172.16.100.2 netmask 255.255.255.0
+$ ifconfig net1 up
 $ tcpechoserver
 Starting TCP Echo Server
 socket: success, soc=3
