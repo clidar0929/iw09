@@ -49,6 +49,7 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
 // additional functions
 void hexdump(void *data, size_t size);
 uint16_t hton16(uint16_t h);

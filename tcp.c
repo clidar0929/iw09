@@ -32,8 +32,18 @@
 #define TCP_FLG_ACK 0x10
 #define TCP_FLG_URG 0x20
 
+//Encryption Negotiation Constants
+#define INIT_MAGIC 0x15101a0e
+
+//Diffie-Hellman Constants
+#define PRIME 23
+#define GENERATOR 5
+
 #define TCP_FLG_IS(x, y) ((x & 0x3f) == (y))
 #define TCP_FLG_ISSET(x, y) ((x & 0x3f) & (y))
+
+static uint32_t private_key = 0;
+static uint32_t shared_key = 0;
 
 struct tcp_hdr {
     uint16_t src;
@@ -45,6 +55,9 @@ struct tcp_hdr {
     uint16_t win;
     uint16_t sum;
     uint16_t urg;
+    uint8_t opt;
+    uint8_t size;
+    uint8_t tep;
 };
 
 struct tcp_txq_entry {
@@ -99,6 +112,53 @@ struct tcp_cb {
 //static pthread_t timer_thread;
 static struct spinlock tcplock;
 struct tcp_cb cb_table[TCP_CB_TABLE_SIZE];
+
+// Function to calculate modular exponentiation (base^exp % modulus)
+uint32_t mod_exp(uint32_t base, uint32_t exp, uint32_t modulus) {
+    uint32_t result = 1;
+    base = base % modulus;
+    while (exp > 0) {
+        if (exp & 1) {
+            result = (result * base) % modulus;
+        }
+        exp = exp >> 1;
+        base = (base * base) % modulus;
+    }
+    return result;
+}
+
+// Function to generate initial public key
+uint32_t get_public_key() {
+    // Generate a random private key
+    private_key = (uint32_t)random() % (PRIME - 1) + 1; 
+
+    // Calculate public key: public_key = GENERATOR^private_key % PRIME
+    uint32_t public_key = mod_exp(GENERATOR, private_key, PRIME);
+
+    return public_key;
+}
+
+uint32_t prng_helper (uint32_t seed) {
+    // Define parameters for the LCG algorithm
+    uint32_t a = 1664525;
+    uint32_t c = 1013904223;
+    int m = 4294967295; // 2^32
+
+    return (a * seed + c) % m;
+}
+
+void encdec(uint8_t *buf, size_t len) {
+    // Shared key from Diffie-Hellman key exchange
+    size_t i;
+    
+    for (i = 0; i < len; ++i) {
+        // Perform XOR operation with the next byte of the key
+        buf[i] ^= (uint8_t)shared_key;
+        // Update the key using a share pseudorandom number generator. 
+        shared_key = prng_helper(shared_key)
+    }
+
+}
 
 static int
 tcp_txq_add (struct tcp_cb *cb, struct tcp_hdr *hdr, size_t len) {
@@ -173,6 +233,13 @@ tcp_tx (struct tcp_cb *cb, uint32_t seq, uint32_t ack, uint8_t flg, uint8_t *buf
     hdr->win = hton16(cb->rcv.wnd);
     hdr->sum = 0;
     hdr->urg = 0;
+
+    if (TCP_FLG_ISSET(hdr->flg, TCP_FLG_SYN)){
+        hdr->opt = 69;
+        hdr->size = 3;
+        hdr->tep = 0x99;
+    }
+
     memcpy(hdr + 1, buf, len);
     self = ((struct netif_ip *)cb->iface)->unicast;
     peer = cb->peer.addr;
@@ -183,74 +250,17 @@ tcp_tx (struct tcp_cb *cb, uint32_t seq, uint32_t ack, uint8_t flg, uint8_t *buf
     pseudo += hton16((uint16_t)IP_PROTOCOL_TCP);
     pseudo += hton16(sizeof(struct tcp_hdr) + len);
     hdr->sum = cksum16((uint16_t *)hdr, sizeof(struct tcp_hdr) + len, pseudo);
+    hexdump(&peer, sizeof(ip_addr_t));
     ip_tx(cb->iface, IP_PROTOCOL_TCP, (uint8_t *)hdr, sizeof(struct tcp_hdr) + len, &peer);
     tcp_txq_add(cb, hdr, sizeof(struct tcp_hdr) + len);
     return len;
 }
 
-#if 0
-static void *
-tcp_timer_thread (void *arg) {
-    struct timeval timestamp;
-    struct tcp_cb *cb;
-    struct tcp_txq_entry *txq, *prev, *tmp;
-    ip_addr_t peer;
-
-    while (1) {
-        gettimeofday(&timestamp, NULL);
-        acquire(&tcplock);
-        for (cb = cb_table; cb < array_tailof(cb_table); cb++) {
-            prev = NULL;
-            txq = cb->txq.head;
-            while (txq) {
-                if (ntoh32(txq->segment->seq) >= cb->snd.una) {
-                    if (timestamp.tv_sec - txq->timestamp.tv_sec > 3) {
-                        peer = cb->peer.addr;
-                        ip_tx(cb->iface, IP_PROTOCOL_TCP, (uint8_t *)txq->segment, txq->len, &peer);
-                        txq->timestamp = timestamp;
-                    }
-
-                    // update previous tcp_txq_entry
-                    prev = txq;
-                    txq = txq->next;
-                } else {
-                    // remove tcp_txq_entry from list
-                    // do not change prev, just update txq by txq->next,
-                    // and free txq and txq->segment,
-                    // and update cb->txq.[head|tail] if needed
-
-                    // swap tail tcp_txq_entry
-                    if (!txq->next) {
-                        // txq is tail entry
-                        cb->txq.tail = prev;
-                    }
-                    // swap previous tcp_txq_entry
-                    if (prev) {
-                        prev->next = txq->next;
-                    } else {
-                        cb->txq.head = txq->next;
-                    }
-
-                    // free tcp_txq_entry
-                    tmp = txq->next;
-                    free(txq->segment);
-                    free(txq);
-                    // check next entry
-                    txq = tmp;
-                }
-            }
-        }
-        release(&tcplock);
-        usleep(100000);
-    }
-    return NULL;
-}
-#endif
-
 static void
 tcp_incoming_event (struct tcp_cb *cb, struct tcp_hdr *hdr, size_t len) {
     uint32_t seq, ack;
     size_t hlen, plen;
+    uint8_t init[8] = {0};
 
     hlen = ((hdr->off >> 4) << 2);
     plen = len - hlen;
@@ -287,7 +297,14 @@ tcp_incoming_event (struct tcp_cb *cb, struct tcp_hdr *hdr, size_t len) {
                 tcp_tx(cb, seq, ack, TCP_FLG_RST, NULL, 0);
                 return;
             }
-            if (TCP_FLG_ISSET(hdr->flg, TCP_FLG_SYN)) {
+            if (TCP_FLG_ISSET(hdr->flg, TCP_FLG_SYN)) { 
+                if (hdr->opt != 69){ 
+                    cprintf("SYN without TCP-ENO");
+                    seq = ntoh32(hdr->ack);
+                    ack = 0;
+                    tcp_tx(cb, seq, ack, TCP_FLG_RST, NULL, 0);
+                    return;
+                }
                 cb->rcv.nxt = ntoh32(hdr->seq) + 1;
                 cb->irs = ntoh32(hdr->seq);
                 cb->iss = (uint32_t)random();
@@ -326,7 +343,9 @@ tcp_incoming_event (struct tcp_cb *cb, struct tcp_hdr *hdr, size_t len) {
                         cb->state = TCP_CB_STATE_ESTABLISHED;
                         seq = cb->snd.nxt;
                         ack = cb->rcv.nxt;
-                        tcp_tx(cb, seq, ack, TCP_FLG_ACK, NULL, 0);
+                        *((uint32_t*)init) = INIT_MAGIC;
+                        *((uint32_t*)(init + 4)) = get_public_key();
+                        tcp_tx(cb, seq, ack, TCP_FLG_ACK, init, 0);
                         wakeup(cb);
                     }
                     return;
@@ -395,6 +414,13 @@ tcp_incoming_event (struct tcp_cb *cb, struct tcp_hdr *hdr, size_t len) {
             case TCP_CB_STATE_ESTABLISHED:
             case TCP_CB_STATE_FIN_WAIT1:
             case TCP_CB_STATE_FIN_WAIT2:
+                if (private_key && !shared_key) {
+                    if (*((uint32_t*)((uint8_t *)hdr + hlen)) != INIT_MAGIC){
+                        tcp_tx(cb, ntoh32(hdr->ack), 0, TCP_FLG_RST, NULL, 0);
+                        break
+                    }
+                    shared_key = mod_exp(*((uint32_t*)((uint8_t *)hdr + hlen + sizeof(uint32_t))), private_key, PRIME);
+                }
                 memcpy(cb->window + (sizeof(cb->window) - cb->rcv.wnd), (uint8_t *)hdr + hlen, plen);
                 cb->rcv.nxt = ntoh32(hdr->seq) + plen;
                 cb->rcv.wnd -= plen;
@@ -436,7 +462,6 @@ tcp_rx (uint8_t *segment, size_t len, ip_addr_t *src, ip_addr_t *dst, struct net
     struct tcp_hdr *hdr;
     uint32_t pseudo = 0;
     struct tcp_cb *cb, *fcb = NULL, *lcb = NULL;
-
     if (*dst != ((struct netif_ip *)iface)->unicast) {
         return;
     }
@@ -452,7 +477,7 @@ tcp_rx (uint8_t *segment, size_t len, ip_addr_t *src, ip_addr_t *dst, struct net
     pseudo += hton16(len);
     if (cksum16((uint16_t *)hdr, len, pseudo) != 0) {
         cprintf("tcp checksum error!\n");
-        return;
+        //return;
     }
     acquire(&tcplock);
     for (cb = cb_table; cb < array_tailof(cb_table); cb++) {
@@ -463,6 +488,10 @@ tcp_rx (uint8_t *segment, size_t len, ip_addr_t *src, ip_addr_t *dst, struct net
         }
         else if ((!cb->iface || cb->iface == iface) && cb->port == hdr->dst) {
             if (cb->peer.addr == *src && cb->peer.port == hdr->src) {
+                if (TCP_FLG_IS(hdr->flg, TCP_FLG_SYN | TCP_FLG_ACK)){
+                    cb->used = 1;
+                    cb->iface = iface;
+                }
                 break;
             }
             if (cb->state == TCP_CB_STATE_LISTEN && !lcb) {
@@ -472,7 +501,7 @@ tcp_rx (uint8_t *segment, size_t len, ip_addr_t *src, ip_addr_t *dst, struct net
     }
     if (cb == array_tailof(cb_table)) {
         if (!lcb || !fcb || !TCP_FLG_IS(hdr->flg, TCP_FLG_SYN)) {
-            // send RST
+            tcp_tx(cb, ntoh32(hdr->ack), 0, TCP_FLG_RST, NULL, 0);
             release(&tcplock);
             return;
         }
@@ -486,6 +515,7 @@ tcp_rx (uint8_t *segment, size_t len, ip_addr_t *src, ip_addr_t *dst, struct net
         cb->rcv.wnd = sizeof(cb->window);
         cb->parent = lcb;
     }
+ 
     tcp_incoming_event(cb, hdr, len);
     release(&tcplock);
     return;
@@ -589,6 +619,7 @@ tcp_api_connect (int soc, struct sockaddr *addr, int addrlen) {
     while (cb->state == TCP_CB_STATE_SYN_SENT) {
         sleep(&cb_table[soc], &tcplock);
     }
+
     release(&tcplock);
     return 0;
 }
@@ -706,6 +737,7 @@ tcp_api_recv (int soc, uint8_t *buf, size_t size) {
     }
     len = size < total ? size : total;
     memcpy(buf, cb->window, len);
+    encdec(buf, len);
     memmove(cb->window, cb->window + len, total - len);
     cb->rcv.wnd += len;
     release(&tcplock);
@@ -729,6 +761,9 @@ tcp_api_send (int soc, uint8_t *buf, size_t len) {
         release(&tcplock);
         return -1;
     }
+
+    encdec(buf, len);
+
     tcp_tx(cb, cb->snd.nxt, cb->rcv.nxt, TCP_FLG_ACK | TCP_FLG_PSH, buf, len);
     cb->snd.nxt += len;
     release(&tcplock);

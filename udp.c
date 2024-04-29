@@ -286,15 +286,18 @@ udp_api_sendto (int soc, uint8_t *buf, size_t len, struct sockaddr *addr, int ad
     uint16_t sport;
 
     if (soc < 0 || soc >= UDP_CB_TABLE_SIZE) {
+        cprintf("A");
         return -1;
     }
     if (!addr || addr->sa_family != AF_INET || addrlen < sizeof(struct sockaddr_in)) {
+        cprintf("B");
         return -1;
     }
     peer = (struct sockaddr_in *)addr;
     acquire(&udplock);
     cb = &cb_table[soc];
     if (!cb->used) {
+        cprintf("C");
         release(&udplock);
         return -1;
     }
@@ -302,6 +305,7 @@ udp_api_sendto (int soc, uint8_t *buf, size_t len, struct sockaddr *addr, int ad
     if (!iface) {
         iface = ip_netif_by_peer(&peer->sin_addr);
         if (!iface) {
+            cprintf("D");
             release(&udplock);
             return -1;
         }
@@ -320,6 +324,7 @@ udp_api_sendto (int soc, uint8_t *buf, size_t len, struct sockaddr *addr, int ad
         }
         if (!cb->port) {
             release(&udplock);
+            cprintf("E");
             return -1;
         }
     }

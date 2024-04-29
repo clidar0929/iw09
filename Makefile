@@ -48,7 +48,7 @@ NET_OBJS = \
 OBJS += $(NET_OBJS)
 
 # Cross-compiling (e.g., on Mac OS X)
-# TOOLPREFIX = i386-jos-elf
+#TOOLPREFIX = i386-jos-elf
 
 # Using native tools (e.g., on X86 Linux)
 #TOOLPREFIX = 
@@ -208,7 +208,16 @@ NET_UPROGS=\
 	_tcpechoserver\
 	_udpechoserver\
 
+IW_UPROGS=\
+	_test\
+	_syn_client\
+	_udp_client\
+	_connectiontest\
+	_connserver\
+
 UPROGS += $(NET_UPROGS)
+UPROGS += $(IW_UPROGS)
+
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -245,33 +254,33 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 2
+CPUS := 1
 endif
 
 QEMUNET = -netdev user,id=n1,hostfwd=udp::10007-:7,hostfwd=tcp::10007-:7 -device e1000,netdev=n1 -object filter-dump,id=f1,netdev=n1,file=n1.pcap \
           -netdev tap,id=n2,ifname=tap0 -device e1000,netdev=n2 -object filter-dump,id=f2,netdev=n2,file=n2.pcap
 
-QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp $(CPUS) -m 512 $(QEMUEXTRA) $(QEMUNET)
+QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp $(CPUS) -m 512 $(QEMUEXTRA) 
 
 qemu: fs.img xv6.img
-	$(QEMU) -serial mon:stdio $(QEMUOPTS)
+	$(QEMU) -serial mon:stdio $(QEMUOPTS) $(QEMUNET)
 
 qemu-memfs: xv6memfs.img
 	$(QEMU) -drive file=xv6memfs.img,index=0,media=disk,format=raw -smp $(CPUS) -m 256
 
 qemu-nox: fs.img xv6.img
-	$(QEMU) -nographic $(QEMUOPTS)
+	$(QEMU) -nographic $(QEMUOPTS) $(QEMUNET)
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
 qemu-gdb: fs.img xv6.img .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) -serial mon:stdio $(QEMUOPTS) -S $(QEMUGDB)
+	$(QEMU) -serial mon:stdio $(QEMUOPTS) $(QEMUNET) -S $(QEMUGDB)
 
 qemu-nox-gdb: fs.img xv6.img .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) -nographic $(QEMUOPTS) -S $(QEMUGDB)
+	$(QEMU) -nographic $(QEMUOPTS) $(QEMUNET) -S $(QEMUGDB)
 
 # CUT HERE
 # prepare dist for students
@@ -321,10 +330,43 @@ docker-build:
 docker-run:
 	docker run -it --name xv6-net --rm --device=/dev/net/tun --cap-add=NET_ADMIN xv6-net make run
 
-run: xv6.img fs.img
+DOCKER_NETWORK = mynetwork
+
+docker-network:
+	docker network create $(DOCKER_NETWORK)
+
+docker-run-gdb:
+	docker run -it --name xv6-net --rm --device=/dev/net/tun --cap-add=NET_ADMIN -p $(GDBPORT):$(GDBPORT) xv6-net make qemu-nox-gdb
+
+docker-run-client-gdb:
+	docker run -it --name xv6-net-client --rm --device=/dev/net/tun --cap-add=NET_ADMIN --network $(DOCKER_NETWORK) -p $(GDBPORT):$(GDBPORT) xv6-net-client make qemu-nox-gdb
+
+run: xv6.img fs.img 
 	ip tuntap add mode tap name tap0
 	ip addr add 172.16.100.1/24 dev tap0
 	ip link set tap0 up
-	$(QEMU) -nographic $(QEMUOPTS)
+	$(QEMU) -nographic $(QEMUOPTS) $(QEMUNET)
 
-.PHONY: dist-test dist docker-build docker-run run
+docker-run-client-server:
+	docker run -it --name xv6-net --rm --device=/dev/net/tun --cap-add=NET_ADMIN --network $(DOCKER_NETWORK) xv6-net make run-server
+
+run-client: 
+	cp xv6.img xv7.img
+	cp fs.img fs1.img
+	$(QEMU) -nographic \
+	-drive file=fs1.img,index=1,media=disk,format=raw -drive file=xv7.img,index=0,media=disk,format=raw -smp $(CPUS) -m 512 \
+	-netdev bridge,id=hn1,br=qemubr0 -object filter-dump,id=f1,netdev=hn1,file=n1c.pcap \
+	-device e1000,netdev=hn1,mac=e6:c8:ff:09:76:9c \
+
+run-server: xv6.img fs.img 
+	mkdir /etc/qemu
+	echo "allow qemubr0" > /etc/qemu/bridge.conf
+	ip link add qemubr0 type bridge
+	ip addr add 192.168.0.1/24 dev qemubr0
+	ip link set qemubr0 up
+	$(QEMU) -nographic \
+	-drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp $(CPUS) -m 512 \
+	-netdev bridge,id=hn1,br=qemubr0 -object filter-dump,id=f1,netdev=hn1,file=n1s.pcap \
+	-device e1000,netdev=hn1,mac=e6:c8:ff:09:76:99 \
+
+.PHONY: dist-test dist docker-build docker-run docker-build-server docker-build-client docker-run-server docker-run-client run

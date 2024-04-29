@@ -145,7 +145,6 @@ ip_route_del (struct netif *netif) {
 static struct ip_route *
 ip_route_lookup (const struct netif *netif, const ip_addr_t *dst) {
     struct ip_route *route, *candidate = NULL;
-
     for (route = route_table; route < array_tailof(route_table); route++) {
         if (route->used && (*dst & route->netmask) == route->network && (!netif || route->netif == netif)) {
             if (!candidate || ntoh32(candidate->netmask) < ntoh32(route->netmask)) {

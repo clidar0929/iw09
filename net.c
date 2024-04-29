@@ -6,6 +6,8 @@
 #include "net.h"
 #include "ip.h"
 
+#define DEBUG
+
 struct netproto {
     struct netproto *next;
     uint16_t type;

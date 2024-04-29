@@ -17,6 +17,8 @@
 #define ARP_TABLE_SIZE 4096
 #define ARP_TABLE_TIMEOUT_SEC 300
 
+#define DEBUG
+
 struct arp_hdr {
     uint16_t hrd;
     uint16_t pro;
@@ -87,6 +89,30 @@ arp_table_select (const ip_addr_t *pa) {
     return NULL;
 }
 
+// static int
+// arp_table_update (struct netdev *dev, const ip_addr_t *pa, const uint8_t *ha) {
+//     struct arp_entry *entry;
+
+//     entry = arp_table_select(pa);
+//     if (!entry) {
+//         return -1;
+//     }
+//     memcpy(entry->ha, ha, ETHERNET_ADDR_LEN);
+//     time(&entry->timestamp);
+//     if (entry->data) {
+//         if (entry->netif->dev != dev) {
+//             /* warning: receive response from unintended device */
+//             dev = entry->netif->dev;
+//         }
+//         dev->ops->xmit(dev, ETHERNET_TYPE_IP, (uint8_t *)entry->data, entry->len, entry->ha);
+//         kfree(entry->data);
+//         entry->data = NULL;
+//         entry->len = 0;
+//     }
+//     //pthread_cond_broadcast(&entry->cond);
+//     return 0;
+// }
+
 static int
 arp_table_update (struct netdev *dev, const ip_addr_t *pa, const uint8_t *ha) {
     struct arp_entry *entry;
@@ -107,9 +133,10 @@ arp_table_update (struct netdev *dev, const ip_addr_t *pa, const uint8_t *ha) {
         entry->data = NULL;
         entry->len = 0;
     }
-    //pthread_cond_broadcast(&entry->cond);
+    cprintf("\nHMMM\n");
     return 0;
 }
+
 
 static struct arp_entry *
 arp_table_freespace (void) {
@@ -136,6 +163,7 @@ arp_table_insert (const ip_addr_t *pa, const uint8_t *ha) {
     memcpy(entry->ha, ha, ETHERNET_ADDR_LEN);
     time(&entry->timestamp);
     //pthread_cond_broadcast(&entry->cond);
+
     return 0;
 }
 
@@ -183,7 +211,7 @@ arp_send_request (struct netif *netif, const ip_addr_t *tpa) {
     memset(request.tha, 0, ETHERNET_ADDR_LEN);
     request.tpa = *tpa;
 #ifdef DEBUG
-    fprintf(stderr, ">>> arp_send_request <<<\n");
+    cprintf(">>> arp_send_request <<<\n");
     arp_dump((uint8_t *)&request, sizeof(request));
 #endif
     if (netif->dev->ops->xmit(netif->dev, ETHERNET_TYPE_ARP, (uint8_t *)&request, sizeof(request), ETHERNET_ADDR_BROADCAST) == -1) {
@@ -226,19 +254,24 @@ arp_rx (uint8_t *packet, size_t plen, struct netdev *dev) {
     struct netif *netif;
 
     if (plen < sizeof(struct arp_ethernet)) {
+        cprintf("ISSUE1\n");
         return;
     }
     message = (struct arp_ethernet *)packet;
     if (ntoh16(message->hdr.hrd) != ARP_HRD_ETHERNET) {
+        cprintf("ISSUE2\n");
         return;
     }
     if (ntoh16(message->hdr.pro) != ETHERNET_TYPE_IP) {
+        cprintf("ISSUE3\n");
         return;
     }
     if (message->hdr.hln != ETHERNET_ADDR_LEN) {
+        cprintf("ISSUE4\n");
         return;
     }
     if (message->hdr.pln != IP_ADDR_LEN) {
+        cprintf("ISSUE5\n");
         return;
     }
 #ifdef DEBUG
@@ -254,6 +287,7 @@ arp_rx (uint8_t *packet, size_t plen, struct netdev *dev) {
     marge = (arp_table_update(dev, &message->spa, message->sha) == 0) ? 1 : 0;
     release(&arplock);
     netif = netdev_get_netif(dev, NETIF_FAMILY_IPV4);
+    //wakeup(netif); // Wake up any process sleeping on this entry
     if (netif && ((struct netif_ip *)netif)->unicast == message->tpa) {
         if (!marge) {
             acquire(&arplock);
@@ -271,43 +305,175 @@ int
 arp_resolve (struct netif *netif, const ip_addr_t *pa, uint8_t *ha, const void *data, size_t len) {
     struct arp_entry *entry;
     int ret;
+    ip_addr_t addr1;
+    ip_addr_t addr2;
+    uint8_t MAC[ETHERNET_ADDR_LEN] = {"\x00\x00\x00\x00\x00\x00"};
 
     acquire(&arplock);
+
     entry = arp_table_select(pa);
     if (entry) {
         if (memcmp(entry->ha, ETHERNET_ADDR_ANY, ETHERNET_ADDR_LEN) == 0) {
             arp_send_request(netif, pa); /* just in case packet loss */
+            cprintf("\nWAHHHH\n");
+            sleep(netif, &arplock); // Sleep while waiting for ARP reply
+            memcpy(ha, entry->ha, ETHERNET_ADDR_LEN);
             release(&arplock);
-            return ARP_RESOLVE_QUERY;
+            return ARP_RESOLVE_FOUND;
         }
         memcpy(ha, entry->ha, ETHERNET_ADDR_LEN);
         release(&arplock);
         return ARP_RESOLVE_FOUND;
     }
+
+    if(ip_addr_pton("192.168.0.8", &addr1) == -1) {
+        cprintf("error parsing ip\n");
+        exit();
+    }
+    if(ip_addr_pton("192.168.0.16", &addr2) == -1) {
+        cprintf("error parsing ip\n");
+        exit();
+    }
+    if (*pa == addr1){
+        if(ethernet_addr_pton("e6:c8:ff:09:76:99", MAC) == -1) {
+            cprintf("error parsing MAC\n");
+            exit();
+        }
+        cprintf("\nSWISH\n");
+        arp_table_insert(pa, MAC);
+    }
+    if (*pa == addr2){
+        if(ethernet_addr_pton("e6:c8:ff:09:76:9c", MAC) == -1) {
+            cprintf("error parsing MAC\n");
+            exit();
+        }
+        cprintf("\nSWOOSH\n");
+        arp_table_insert(pa, MAC);
+    }
+
+    entry = arp_table_select(pa);
+    if (entry) {
+        if (memcmp(entry->ha, ETHERNET_ADDR_ANY, ETHERNET_ADDR_LEN) == 0) {
+            arp_send_request(netif, pa); /* just in case packet loss */
+            cprintf("\nWOAHHHH\n");
+            sleep(netif, &arplock); // Sleep while waiting for ARP reply
+            memcpy(ha, entry->ha, ETHERNET_ADDR_LEN);
+            release(&arplock);
+            return ARP_RESOLVE_FOUND;
+        }
+        cprintf("\nWELL\n");
+        memcpy(ha, entry->ha, ETHERNET_ADDR_LEN);
+        release(&arplock);
+        return ARP_RESOLVE_FOUND;
+    }
+    
     entry = arp_table_freespace();
     if (!entry) {
         release(&arplock);
         return ARP_RESOLVE_ERROR;
     }
-/*
-    if (data) {
-        entry->data = (uint8_t*)kalloc();
-        if (!entry->data) {
-            release(&arplock);
-            return ARP_RESOLVE_ERROR;
-        }
-        memcpy(entry->data, data, len);
-        entry->len = len;
-    }
-*/
     entry->used = 1;
     entry->pa = *pa;
     time(&entry->timestamp);
     entry->netif = netif;
+
     arp_send_request(netif, pa);
+    // while (memcmp(entry->ha, ETHERNET_ADDR_ANY, ETHERNET_ADDR_LEN) == 0) {
+    //     cprintf("\nWARIO\n");
+    //     //sleep(netif, &arplock); // Sleep while waiting for ARP reply
+    // }
+    cprintf("\nWALUIGI\n");
+    // After waking up
+    memcpy(ha, entry->ha, ETHERNET_ADDR_LEN);
     release(&arplock);
-    return ARP_RESOLVE_QUERY;
+    
+    return ARP_RESOLVE_FOUND;
 }
+
+
+// int
+// arp_resolve (struct netif *netif, const ip_addr_t *pa, uint8_t *ha, const void *data, size_t len) {
+//     struct arp_entry *entry;
+//     int ret;
+
+//     acquire(&arplock);
+//     entry = arp_table_select(pa);
+//     if (entry) {
+//         if (memcmp(entry->ha, ETHERNET_ADDR_ANY, ETHERNET_ADDR_LEN) == 0) {
+//             arp_send_request(netif, pa); /* just in case packet loss */
+//             release(&arplock);
+//             return ARP_RESOLVE_QUERY;
+//         }
+//         memcpy(ha, entry->ha, ETHERNET_ADDR_LEN);
+//         release(&arplock);
+//         cprintf("FRESNO");
+//         return ARP_RESOLVE_FOUND;
+//     }
+
+//     entry = arp_table_freespace();
+//     if (!entry) {
+//         release(&arplock);
+//         return ARP_RESOLVE_ERROR;
+//     }
+//     entry->used = 1;
+//     entry->pa = *pa;
+//     time(&entry->timestamp);
+//     entry->netif = netif;
+//     arp_send_request(netif, pa);
+//     cprintf("PLAIN\n");
+
+//     release(&arplock);
+    
+//     //Polling until entry is resolved
+//     while (1) {
+//         acquire(&arplock);
+//         entry = arp_table_select(pa);
+//         if (entry){
+//             cprintf("ANY\n");
+//         } else {
+//             cprintf("NOTFOUND\n");
+//         }
+//         if (entry && memcmp(entry->ha, ETHERNET_ADDR_ANY, ETHERNET_ADDR_LEN) != 0) {
+//             memcpy(ha, entry->ha, ETHERNET_ADDR_LEN);
+//             release(&arplock);
+//             cprintf("DEALER");
+//             return ARP_RESOLVE_FOUND;
+//         }
+//         release(&arplock);
+//     }
+
+//      return ARP_RESOLVE_QUERY;
+
+//     // while (!entry){
+//     //     sleep(netif, &arplock);
+//     //     entry = arp_table_select(pa);
+//     // }
+
+//     // cprintf("DEALER\n");
+    
+//     // if (memcmp(entry->ha, ETHERNET_ADDR_ANY, ETHERNET_ADDR_LEN) == 0) {
+//     //     arp_send_request(netif, pa); /* just in case packet loss */
+//     //     release(&arplock);
+//     //     return ARP_RESOLVE_QUERY;
+//     // }
+//     // memcpy(ha, entry->ha, ETHERNET_ADDR_LEN);
+//     // release(&arplock);
+//     // cprintf("FRESNO");
+//     // return ARP_RESOLVE_FOUND;
+   
+// }
+
+// /*
+//     if (data) {
+//         entry->data = (uint8_t*)kalloc();
+//         if (!entry->data) {
+//             release(&arplock);
+//             return ARP_RESOLVE_ERROR;
+//         }
+//         memcpy(entry->data, data, len);
+//         entry->len = len;
+//     }
+// */
 
 int
 arp_init (void) {
